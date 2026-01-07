@@ -188,7 +188,7 @@ class LoginScreen extends StatelessWidget {
                       GestureDetector(
                         onTap: () {},
                         child: Text(
-                          "Contact Admin",
+                          "Sign up",
                           style: TextStyle(
                               color: primaryBlue, fontWeight: FontWeight.bold),
                         ),
