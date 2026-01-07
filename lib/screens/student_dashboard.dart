@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
 import 'role_selection_screen.dart'; // Logout logic
 
-// --- 1. IMPORTS: CORE SCREENS (Same Folder) ---
+// ==========================================================
+//                 1. IMPORTS: CORE SCREENS
+// ==========================================================
 import 'study_timer_screen.dart';
 import 'homework_screen.dart';
 import 'placeholder_screen.dart';
 
-// --- 2. IMPORTS: STUDENT FEATURES (Sub-Folder) ---
+// ==========================================================
+//                 2. IMPORTS: STUDENT FEATURES
+// ==========================================================
 import 'student_features/attendance_screen.dart';
 import 'student_features/timetable_screen.dart';
 import 'student_features/results_screen.dart';
@@ -20,13 +24,22 @@ import 'student_features/events_screen.dart';
 import 'student_features/analytics_screen.dart';
 import 'student_features/support_screen.dart';
 
-// --- 3. IMPORTS: LEARNING HUB FEATURES (Sub-Folder) ---
+// ==========================================================
+//                 3. IMPORTS: LEARNING HUB
+// ==========================================================
 import 'student_features/video_lessons_screen.dart';
 import 'student_features/practice_tests_screen.dart';
 import 'student_features/doubt_solver_screen.dart';
 import 'student_features/saved_resources_screen.dart';
 
-// --- 4. IMPORTS: PROFILE FEATURES (Sub-Folder) ---
+// ==========================================================
+//                 4. IMPORTS: CONNECT (TEACHER CHAT)
+// ==========================================================
+import 'student_features/teacher_chat_screen.dart'; // ✅ Added Teacher Chat Import
+
+// ==========================================================
+//                 5. IMPORTS: PROFILE
+// ==========================================================
 import 'student_features/my_account_screen.dart';
 import 'student_features/academic_reports_screen.dart';
 import 'student_features/app_settings_screen.dart';
@@ -42,7 +55,7 @@ class StudentDashboard extends StatefulWidget {
 class _StudentDashboardState extends State<StudentDashboard> {
   int _selectedIndex = 0;
 
-  // Premium Student Palette (Electric Blue & Clean White)
+  // Premium Student Color Palette
   final Color kPrimaryColor = const Color(0xFF2563EB); // Electric Blue
   final Color kSecondaryColor = const Color(0xFF3B82F6); // Soft Blue
   final Color kBackgroundColor = const Color(0xFFF8FAFC); // Slate 50 (Very Light Grey)
@@ -54,7 +67,9 @@ class _StudentDashboardState extends State<StudentDashboard> {
       backgroundColor: kBackgroundColor,
       extendBody: true, // Navbar floats over content
 
-      // --- 1. PREMIUM APP BAR ---
+      // --------------------------------------------------------
+      //                       APP BAR
+      // --------------------------------------------------------
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -62,7 +77,9 @@ class _StudentDashboardState extends State<StudentDashboard> {
         flexibleSpace: Container(
           decoration: BoxDecoration(
             color: kBackgroundColor,
-            border: Border(bottom: BorderSide(color: Colors.grey.withOpacity(0.05))),
+            border: Border(
+              bottom: BorderSide(color: Colors.grey.withOpacity(0.05)),
+            ),
           ),
         ),
         title: Row(
@@ -84,11 +101,19 @@ class _StudentDashboardState extends State<StudentDashboard> {
               children: [
                 Text(
                   "Welcome back,",
-                  style: TextStyle(color: Colors.grey[600], fontSize: 12, fontWeight: FontWeight.w500),
+                  style: TextStyle(
+                    color: Colors.grey[600],
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500
+                  ),
                 ),
                 const Text(
                   "Aryan Sharma",
-                  style: TextStyle(color: Colors.black87, fontWeight: FontWeight.w800, fontSize: 18),
+                  style: TextStyle(
+                    color: Colors.black87,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 18
+                  ),
                 ),
               ],
             ),
@@ -100,7 +125,12 @@ class _StudentDashboardState extends State<StudentDashboard> {
             decoration: BoxDecoration(
               color: Colors.white,
               shape: BoxShape.circle,
-              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 10
+                )
+              ],
             ),
             child: IconButton(
               icon: Icon(Icons.notifications_outlined, color: Colors.grey[800], size: 24),
@@ -110,7 +140,9 @@ class _StudentDashboardState extends State<StudentDashboard> {
         ],
       ),
 
-      // --- 2. SMOOTH BODY TRANSITION ---
+      // --------------------------------------------------------
+      //                       BODY
+      // --------------------------------------------------------
       body: AnimatedSwitcher(
         duration: const Duration(milliseconds: 300),
         child: KeyedSubtree(
@@ -119,15 +151,25 @@ class _StudentDashboardState extends State<StudentDashboard> {
         ),
       ),
 
-      // --- 3. FLOATING GLASS NAVBAR ---
+      // --------------------------------------------------------
+      //                  BOTTOM NAVIGATION BAR
+      // --------------------------------------------------------
       bottomNavigationBar: Container(
         margin: const EdgeInsets.only(bottom: 20, left: 20, right: 20),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(25),
           boxShadow: [
-            BoxShadow(color: Colors.blue.withOpacity(0.08), blurRadius: 20, offset: const Offset(0, 10)),
-            BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 5, offset: const Offset(0, 2)),
+            BoxShadow(
+              color: Colors.blue.withOpacity(0.08),
+              blurRadius: 20,
+              offset: const Offset(0, 10)
+            ),
+            BoxShadow(
+              color: Colors.black.withOpacity(0.03),
+              blurRadius: 5,
+              offset: const Offset(0, 2)
+            ),
           ],
         ),
         child: ClipRRect(
@@ -145,10 +187,22 @@ class _StudentDashboardState extends State<StudentDashboard> {
             unselectedLabelStyle: const TextStyle(fontSize: 10, fontWeight: FontWeight.w500),
             elevation: 0,
             items: const [
-              BottomNavigationBarItem(icon: Icon(Icons.grid_view_rounded), label: "Dashboard"),
-              BottomNavigationBarItem(icon: Icon(Icons.auto_stories_rounded), label: "Learn"),
-              BottomNavigationBarItem(icon: Icon(Icons.forum_rounded), label: "Connect"),
-              BottomNavigationBarItem(icon: Icon(Icons.person_rounded), label: "Profile"),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.grid_view_rounded),
+                label: "Dashboard"
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.auto_stories_rounded),
+                label: "Learn"
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.forum_rounded),
+                label: "Connect"
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.person_rounded),
+                label: "Profile"
+              ),
             ],
           ),
         ),
@@ -166,7 +220,9 @@ class _StudentDashboardState extends State<StudentDashboard> {
     }
   }
 
-  // ==================== TAB 1: HOME (Dashboard) ====================
+  // ==========================================================
+  //                  TAB 1: HOME DASHBOARD
+  // ==========================================================
   Widget _buildHomeTab() {
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
@@ -175,31 +231,58 @@ class _StudentDashboardState extends State<StudentDashboard> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           
-          // 1. Next Class Alert (Updated Style)
+          // --- 1. NEXT CLASS ALERT ---
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(20),
               border: Border(left: BorderSide(color: kPrimaryColor, width: 5)),
-              boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.05), blurRadius: 15)],
+              boxShadow: [
+                BoxShadow(color: Colors.grey.withOpacity(0.05), blurRadius: 15)
+              ],
             ),
             child: Row(
               children: [
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text("UPCOMING CLASS", style: TextStyle(color: Colors.grey[500], fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: 1.2)),
+                    Text(
+                      "UPCOMING CLASS",
+                      style: TextStyle(
+                        color: Colors.grey[500],
+                        fontSize: 10,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 1.2
+                      )
+                    ),
                     const SizedBox(height: 6),
-                    const Text("Physics (Chapter 4)", style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: Colors.black87)),
+                    const Text(
+                      "Physics (Chapter 4)",
+                      style: TextStyle(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 16,
+                        color: Colors.black87
+                      )
+                    ),
                     const SizedBox(height: 4),
-                    Text("Starts in 10 mins • Room 302", style: TextStyle(color: kPrimaryColor, fontSize: 12, fontWeight: FontWeight.w600)),
+                    Text(
+                      "Starts in 10 mins • Room 302",
+                      style: TextStyle(
+                        color: kPrimaryColor,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600
+                      )
+                    ),
                   ],
                 ),
                 const Spacer(),
                 Container(
                   padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(color: kPrimaryColor.withOpacity(0.08), shape: BoxShape.circle),
+                  decoration: BoxDecoration(
+                    color: kPrimaryColor.withOpacity(0.08),
+                    shape: BoxShape.circle
+                  ),
                   child: Icon(Icons.videocam_rounded, size: 22, color: kPrimaryColor),
                 )
               ],
@@ -208,7 +291,7 @@ class _StudentDashboardState extends State<StudentDashboard> {
           
           const SizedBox(height: 25),
 
-          // 2. Hero Focus Card (Gradient & Depth)
+          // --- 2. FOCUS MODE CARD (HERO) ---
           GestureDetector(
             onTap: () => Navigator.push(context, MaterialPageRoute(builder: (c) => const StudyTimerScreen())),
             child: Container(
@@ -222,7 +305,11 @@ class _StudentDashboardState extends State<StudentDashboard> {
                   end: Alignment.bottomRight,
                 ),
                 boxShadow: [
-                  BoxShadow(color: kPrimaryColor.withOpacity(0.4), blurRadius: 20, offset: const Offset(0, 10)),
+                  BoxShadow(
+                    color: kPrimaryColor.withOpacity(0.4),
+                    blurRadius: 20,
+                    offset: const Offset(0, 10)
+                  ),
                 ],
               ),
               child: Row(
@@ -233,19 +320,51 @@ class _StudentDashboardState extends State<StudentDashboard> {
                       children: [
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                          decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(12)),
-                          child: const Text("🔥 Focus Mode", style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(12)
+                          ),
+                          child: const Text(
+                            "🔥 Focus Mode",
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold
+                            )
+                          ),
                         ),
                         const SizedBox(height: 15),
-                        const Text("Ready to Study?", style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w900)),
+                        const Text(
+                          "Ready to Study?",
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 22,
+                            fontWeight: FontWeight.w900
+                          )
+                        ),
                         const SizedBox(height: 5),
-                        Text("Track your productivity today.", style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 13)),
+                        Text(
+                          "Track your productivity today.",
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.9),
+                            fontSize: 13
+                          )
+                        ),
                       ],
                     ),
                   ),
                   Container(
                     padding: const EdgeInsets.all(15),
-                    decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle, boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10)]),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.1),
+                          blurRadius: 10
+                        )
+                      ]
+                    ),
                     child: Icon(Icons.play_arrow_rounded, color: kPrimaryColor, size: 32),
                   )
                 ],
@@ -255,8 +374,15 @@ class _StudentDashboardState extends State<StudentDashboard> {
           
           const SizedBox(height: 30),
 
-          // 3. Quick Actions (Horizontal List - Like Teacher Dashboard)
-          Text("Quick Actions", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Colors.grey[800])),
+          // --- 3. QUICK ACTIONS ---
+          Text(
+            "Quick Actions",
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w800,
+              color: Colors.grey[800]
+            )
+          ),
           const SizedBox(height: 15),
           SizedBox(
             height: 110,
@@ -264,36 +390,82 @@ class _StudentDashboardState extends State<StudentDashboard> {
               scrollDirection: Axis.horizontal,
               physics: const BouncingScrollPhysics(),
               children: [
-                _buildQuickAction("Homework", "2 Due", Icons.edit_document, Colors.orange, () => Navigator.push(context, MaterialPageRoute(builder: (c) => const HomeworkScreen()))),
-                _buildQuickAction("Timetable", "View", Icons.calendar_month_rounded, Colors.teal, () => Navigator.push(context, MaterialPageRoute(builder: (c) => const TimetableScreen()))),
-                _buildQuickAction("Results", "New!", Icons.bar_chart_rounded, Colors.purple, () => Navigator.push(context, MaterialPageRoute(builder: (c) => const ResultsScreen()))),
-                _buildQuickAction("Notices", "Updates", Icons.campaign_rounded, Colors.redAccent, () => Navigator.push(context, MaterialPageRoute(builder: (c) => const NoticeBoardScreen()))),
+                _buildQuickAction(
+                  "Homework", "2 Due", Icons.edit_document, Colors.orange,
+                  () => Navigator.push(context, MaterialPageRoute(builder: (c) => const HomeworkScreen()))
+                ),
+                _buildQuickAction(
+                  "Timetable", "View", Icons.calendar_month_rounded, Colors.teal,
+                  () => Navigator.push(context, MaterialPageRoute(builder: (c) => const TimetableScreen()))
+                ),
+                _buildQuickAction(
+                  "Results", "New!", Icons.bar_chart_rounded, Colors.purple,
+                  () => Navigator.push(context, MaterialPageRoute(builder: (c) => const ResultsScreen()))
+                ),
+                _buildQuickAction(
+                  "Notices", "Updates", Icons.campaign_rounded, Colors.redAccent,
+                  () => Navigator.push(context, MaterialPageRoute(builder: (c) => const NoticeBoardScreen()))
+                ),
               ],
             ),
           ),
 
           const SizedBox(height: 30),
 
-          // 4. Student Hub Grid (Updated to match Teacher Dashboard Icons)
-          Text("Student Hub", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Colors.grey[800])),
+          // --- 4. STUDENT HUB GRID ---
+          Text(
+            "Student Hub",
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w800,
+              color: Colors.grey[800]
+            )
+          ),
           const SizedBox(height: 15),
           GridView.count(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            crossAxisCount: 3, // Changed to 3 for cleaner look like Teacher Dashboard
+            crossAxisCount: 3,
             childAspectRatio: 1.0,
             mainAxisSpacing: 15,
             crossAxisSpacing: 15,
             children: [
-              _buildGridTile("Attendance", Icons.fact_check_rounded, Colors.green, () => Navigator.push(context, MaterialPageRoute(builder: (c) => const AttendanceScreen()))),
-              _buildGridTile("Notes", Icons.menu_book_rounded, Colors.indigo, () => Navigator.push(context, MaterialPageRoute(builder: (c) => const NotesScreen()))),
-              _buildGridTile("Behaviour", Icons.psychology_rounded, Colors.red, () => Navigator.push(context, MaterialPageRoute(builder: (c) => const BehaviourScreen()))),
-              _buildGridTile("Library", Icons.local_library_rounded, Colors.brown, () => Navigator.push(context, MaterialPageRoute(builder: (c) => const LibraryScreen()))),
-              _buildGridTile("Bus Track", Icons.directions_bus_rounded, Colors.blueGrey, () => Navigator.push(context, MaterialPageRoute(builder: (c) => const BusTrackingScreen()))),
-              _buildGridTile("Pay Fees", Icons.payment_rounded, Colors.deepPurple, () => Navigator.push(context, MaterialPageRoute(builder: (c) => const FeesScreen()))),
-              _buildGridTile("Events", Icons.emoji_events_rounded, Colors.pink, () => Navigator.push(context, MaterialPageRoute(builder: (c) => const EventsScreen()))),
-              _buildGridTile("Analytics", Icons.pie_chart_rounded, Colors.deepOrange, () => Navigator.push(context, MaterialPageRoute(builder: (c) => const AnalyticsScreen()))),
-              _buildGridTile("Support", Icons.headset_mic_rounded, Colors.cyan, () => Navigator.push(context, MaterialPageRoute(builder: (c) => const SupportScreen()))),
+              _buildGridTile(
+                "Attendance", Icons.fact_check_rounded, Colors.green,
+                () => Navigator.push(context, MaterialPageRoute(builder: (c) => const AttendanceScreen()))
+              ),
+              _buildGridTile(
+                "Notes", Icons.menu_book_rounded, Colors.indigo,
+                () => Navigator.push(context, MaterialPageRoute(builder: (c) => const NotesScreen()))
+              ),
+              _buildGridTile(
+                "Behaviour", Icons.psychology_rounded, Colors.red,
+                () => Navigator.push(context, MaterialPageRoute(builder: (c) => const BehaviourScreen()))
+              ),
+              _buildGridTile(
+                "Library", Icons.local_library_rounded, Colors.brown,
+                () => Navigator.push(context, MaterialPageRoute(builder: (c) => const LibraryScreen()))
+              ),
+              _buildGridTile(
+                "Bus Track", Icons.directions_bus_rounded, Colors.blueGrey,
+                () => Navigator.push(context, MaterialPageRoute(builder: (c) => const BusTrackingScreen()))
+              ),
+              _buildGridTile(
+                "Pay Fees", Icons.payment_rounded, Colors.deepPurple,
+                () => Navigator.push(context, MaterialPageRoute(builder: (c) => const FeesScreen()))
+              ),
+              _buildGridTile(
+                "Events", Icons.emoji_events_rounded, Colors.pink,
+                () => Navigator.push(context, MaterialPageRoute(builder: (c) => const EventsScreen()))
+              ),
+              _buildGridTile(
+                "Analytics", Icons.pie_chart_rounded, Colors.deepOrange,
+                () => Navigator.push(context, MaterialPageRoute(builder: (c) => const AnalyticsScreen()))
+              ),
+              _buildGridTile(
+                "Support", Icons.headset_mic_rounded, Colors.cyan,
+                () => Navigator.push(context, MaterialPageRoute(builder: (c) => const SupportScreen()))
+              ),
             ],
           ),
           
@@ -303,14 +475,22 @@ class _StudentDashboardState extends State<StudentDashboard> {
     );
   }
 
-  // ==================== TAB 2: LEARNING HUB ====================
+  // ==========================================================
+  //                  TAB 2: LEARNING HUB
+  // ==========================================================
   Widget _buildLearningTab() {
     return ListView(
       padding: const EdgeInsets.all(20),
       children: [
-        const Text("Learning Hub", style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800)),
+        const Text(
+          "Learning Hub",
+          style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800)
+        ),
         const SizedBox(height: 5),
-        Text("Access your study materials", style: TextStyle(fontSize: 14, color: Colors.grey[600])),
+        Text(
+          "Access your study materials",
+          style: TextStyle(fontSize: 14, color: Colors.grey[600])
+        ),
         const SizedBox(height: 25),
 
         _buildWideCard(
@@ -335,23 +515,30 @@ class _StudentDashboardState extends State<StudentDashboard> {
     );
   }
 
-  // ==================== TAB 3: CHAT & CONNECT ====================
+  // ==========================================================
+  //                  TAB 3: CHAT & CONNECT
+  // ==========================================================
   Widget _buildChatTab() {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text("Smart Connect", style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800)),
+          const Text(
+            "Smart Connect",
+            style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800)
+          ),
           const SizedBox(height: 20),
           
-          // AI Feature Highlight
+          // --- AI TUTOR CARD ---
           Container(
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
               gradient: LinearGradient(colors: [Colors.indigo, Colors.indigo.shade800]),
               borderRadius: BorderRadius.circular(24),
-              boxShadow: [BoxShadow(color: Colors.indigo.withOpacity(0.3), blurRadius: 20, offset: const Offset(0, 8))],
+              boxShadow: [
+                BoxShadow(color: Colors.indigo.withOpacity(0.3), blurRadius: 20, offset: const Offset(0, 8))
+              ],
             ),
             child: Row(
               children: [
@@ -365,9 +552,15 @@ class _StudentDashboardState extends State<StudentDashboard> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text("Ask AI Tutor", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                      const Text(
+                        "Ask AI Tutor",
+                        style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)
+                      ),
                       const SizedBox(height: 4),
-                      Text("24/7 Academic Assistance", style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 12)),
+                      Text(
+                        "24/7 Academic Assistance",
+                        style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 12)
+                      ),
                     ],
                   ),
                 ),
@@ -380,12 +573,55 @@ class _StudentDashboardState extends State<StudentDashboard> {
             ),
           ),
           
+          const SizedBox(height: 20), // Added spacing
+
+          // --- NEW: TALK TO TEACHERS CARD ---
+          GestureDetector(
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const TeacherChatScreen())),
+            child: Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: Colors.blueAccent.withOpacity(0.1)),
+                boxShadow: [BoxShadow(color: Colors.blueAccent.withOpacity(0.05), blurRadius: 15)],
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(color: Colors.blueAccent.withOpacity(0.1), shape: BoxShape.circle),
+                    child: const Icon(Icons.people_alt_rounded, color: Colors.blueAccent, size: 28),
+                  ),
+                  const SizedBox(width: 20),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text("Talk to Teachers", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                        SizedBox(height: 4),
+                        Text("Ask questions directly", style: TextStyle(color: Colors.grey, fontSize: 12)),
+                      ],
+                    ),
+                  ),
+                  const Icon(Icons.arrow_forward_ios_rounded, size: 16, color: Colors.grey),
+                ],
+              ),
+            ),
+          ),
+          
           const SizedBox(height: 30),
           const Text("Recent Messages", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
           const SizedBox(height: 15),
 
-          _buildMessageTile("Class Teacher", "Mrs. Radhika", "Don't forget tomorrow's test!", Icons.person_rounded, Colors.green, () => _openPlaceholder(context, "Chat", Icons.chat)),
-          _buildMessageTile("School Admin", "Notice Board", "School closed on Friday.", Icons.campaign_rounded, Colors.orange, () => Navigator.push(context, MaterialPageRoute(builder: (c) => const NoticeBoardScreen()))),
+          _buildMessageTile(
+            "Class Teacher", "Mrs. Radhika", "Don't forget tomorrow's test!", Icons.person_rounded, Colors.green, 
+            () => Navigator.push(context, MaterialPageRoute(builder: (c) => const TeacherChatScreen()))
+          ),
+          _buildMessageTile(
+            "School Admin", "Notice Board", "School closed on Friday.", Icons.campaign_rounded, Colors.orange, 
+            () => Navigator.push(context, MaterialPageRoute(builder: (c) => const NoticeBoardScreen()))
+          ),
           
           const SizedBox(height: 100),
         ],
@@ -393,7 +629,9 @@ class _StudentDashboardState extends State<StudentDashboard> {
     );
   }
 
-  // ==================== TAB 4: PROFILE ====================
+  // ==========================================================
+  //                  TAB 4: PROFILE SETTINGS
+  // ==========================================================
   Widget _buildProfileTab() {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
@@ -405,50 +643,81 @@ class _StudentDashboardState extends State<StudentDashboard> {
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(24),
-              boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.08), blurRadius: 20, offset: const Offset(0, 5))],
+              boxShadow: [
+                BoxShadow(color: Colors.grey.withOpacity(0.08), blurRadius: 20, offset: const Offset(0, 5))
+              ],
             ),
             child: Column(
               children: [
                 Container(
                   padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: kPrimaryColor.withOpacity(0.1), width: 3)),
-                  child: CircleAvatar(radius: 45, backgroundColor: kPrimaryColor.withOpacity(0.1), child: Icon(Icons.person, size: 50, color: kPrimaryColor)),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: kPrimaryColor.withOpacity(0.1), width: 3)
+                  ),
+                  child: CircleAvatar(
+                    radius: 45,
+                    backgroundColor: kPrimaryColor.withOpacity(0.1),
+                    child: Icon(Icons.person, size: 50, color: kPrimaryColor)
+                  ),
                 ),
                 const SizedBox(height: 15),
-                const Text("Aryan Sharma", style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
-                Text("Class 10-A • Roll No. 24", style: TextStyle(color: Colors.grey[500], fontSize: 14, fontWeight: FontWeight.w500)),
+                const Text(
+                  "Aryan Sharma",
+                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800)
+                ),
+                Text(
+                  "Class 10-A • Roll No. 24",
+                  style: TextStyle(color: Colors.grey[500], fontSize: 14, fontWeight: FontWeight.w500)
+                ),
               ],
             ),
           ),
           const SizedBox(height: 30),
           
-          _buildSettingsTile("My Account", Icons.person_outline_rounded, Colors.blue, () => Navigator.push(context, MaterialPageRoute(builder: (c) => const MyAccountScreen()))),
-          _buildSettingsTile("Academic Reports", Icons.analytics_outlined, Colors.purple, () => Navigator.push(context, MaterialPageRoute(builder: (c) => const AcademicReportsScreen()))),
-          _buildSettingsTile("App Settings", Icons.settings_outlined, Colors.grey, () => Navigator.push(context, MaterialPageRoute(builder: (c) => const AppSettingsScreen()))),
-          _buildSettingsTile("Help Center", Icons.help_outline_rounded, Colors.teal, () => Navigator.push(context, MaterialPageRoute(builder: (c) => const HelpCenterScreen()))),
+          _buildSettingsTile(
+            "My Account", Icons.person_outline_rounded, Colors.blue,
+            () => Navigator.push(context, MaterialPageRoute(builder: (c) => const MyAccountScreen()))
+          ),
+          _buildSettingsTile(
+            "Academic Reports", Icons.analytics_outlined, Colors.purple,
+            () => Navigator.push(context, MaterialPageRoute(builder: (c) => const AcademicReportsScreen()))
+          ),
+          _buildSettingsTile(
+            "App Settings", Icons.settings_outlined, Colors.grey,
+            () => Navigator.push(context, MaterialPageRoute(builder: (c) => const AppSettingsScreen()))
+          ),
+          _buildSettingsTile(
+            "Help Center", Icons.help_outline_rounded, Colors.teal,
+            () => Navigator.push(context, MaterialPageRoute(builder: (c) => const HelpCenterScreen()))
+          ),
           
           const SizedBox(height: 20),
-          _buildSettingsTile("Logout", Icons.logout_rounded, Colors.red, () {
-            showDialog(
-              context: context,
-              builder: (ctx) => AlertDialog(
-                title: const Text("Logout"),
-                content: const Text("Are you sure you want to logout?"),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                actions: [
-                  TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Cancel")),
-                  ElevatedButton(
-                    onPressed: () {
-                      Navigator.pop(ctx);
-                      Navigator.pushReplacement(context, MaterialPageRoute(builder: (c) => const RoleSelectionScreen()));
-                    },
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
-                    child: const Text("Logout"),
-                  ),
-                ],
-              ),
-            );
-          }, isDestructive: true),
+          _buildSettingsTile(
+            "Logout", Icons.logout_rounded, Colors.red,
+            () {
+              showDialog(
+                context: context,
+                builder: (ctx) => AlertDialog(
+                  title: const Text("Logout"),
+                  content: const Text("Are you sure you want to logout?"),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  actions: [
+                    TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Cancel")),
+                    ElevatedButton(
+                      onPressed: () {
+                        Navigator.pop(ctx);
+                        Navigator.pushReplacement(context, MaterialPageRoute(builder: (c) => const RoleSelectionScreen()));
+                      },
+                      style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
+                      child: const Text("Logout"),
+                    ),
+                  ],
+                ),
+              );
+            },
+            isDestructive: true
+          ),
           
           const SizedBox(height: 100),
         ],
@@ -456,13 +725,14 @@ class _StudentDashboardState extends State<StudentDashboard> {
     );
   }
 
-  // ==================== HELPER WIDGETS ====================
+  // ==========================================================
+  //                  HELPER WIDGETS
+  // ==========================================================
 
   void _openPlaceholder(BuildContext context, String title, IconData icon) {
     Navigator.push(context, MaterialPageRoute(builder: (context) => PlaceholderScreen(title: title, icon: icon)));
   }
 
-  // Updated to match Teacher Dashboard's _buildActionCard
   Widget _buildQuickAction(String title, String subtitle, IconData icon, Color color, VoidCallback onTap) {
     return GestureDetector(
       onTap: onTap,
@@ -472,7 +742,9 @@ class _StudentDashboardState extends State<StudentDashboard> {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(20),
-          boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.08), blurRadius: 10, offset: const Offset(0, 5))],
+          boxShadow: [
+            BoxShadow(color: Colors.grey.withOpacity(0.08), blurRadius: 10, offset: const Offset(0, 5))
+          ],
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -492,7 +764,6 @@ class _StudentDashboardState extends State<StudentDashboard> {
     );
   }
 
-  // Updated to match Teacher Dashboard's _buildGridTile (Icon inside Circle)
   Widget _buildGridTile(String title, IconData icon, Color color, VoidCallback onTap) {
     return GestureDetector(
       onTap: onTap,
@@ -500,15 +771,17 @@ class _StudentDashboardState extends State<StudentDashboard> {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(20),
-          boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 2))],
+          boxShadow: [
+            BoxShadow(color: Colors.grey.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 2))
+          ],
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              padding: const EdgeInsets.all(14), // Larger padding for cleaner look
+              padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: color.withOpacity(0.08), // Soft background
+                color: color.withOpacity(0.08),
                 shape: BoxShape.circle,
               ),
               child: Icon(icon, color: color, size: 28),
@@ -530,7 +803,9 @@ class _StudentDashboardState extends State<StudentDashboard> {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(20),
-          boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 2))],
+          boxShadow: [
+            BoxShadow(color: Colors.grey.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 2))
+          ],
         ),
         child: Row(
           children: [
@@ -567,7 +842,9 @@ class _StudentDashboardState extends State<StudentDashboard> {
           color: Colors.white,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(color: Colors.grey.withOpacity(0.05)),
-          boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.05), blurRadius: 10)],
+          boxShadow: [
+            BoxShadow(color: Colors.grey.withOpacity(0.05), blurRadius: 10)
+          ],
         ),
         child: Row(
           children: [
