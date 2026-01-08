@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'student_dashboard.dart';
 import 'teacher_dashboard.dart';
 import 'parent_dashboard.dart';
+import 'login_screen.dart'; // ✅ Added Import for Login Screen
 
 class SignupScreen extends StatelessWidget {
   final String userRole;
@@ -10,6 +11,7 @@ class SignupScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Aesthetic Colors
     final Color primaryBlue = const Color(0xFF1565C0);
     final Color gradientLight = const Color(0xFF64B5F6);
 
@@ -18,7 +20,7 @@ class SignupScreen extends StatelessWidget {
       body: SingleChildScrollView(
         child: Column(
           children: [
-            // Header
+            // 1. Header (Same as Login Screen for consistency)
             Container(
               height: 240,
               width: double.infinity,
@@ -32,6 +34,13 @@ class SignupScreen extends StatelessWidget {
                   bottomLeft: Radius.circular(40),
                   bottomRight: Radius.circular(40),
                 ),
+                boxShadow: [
+                  BoxShadow(
+                    color: primaryBlue.withOpacity(0.3),
+                    blurRadius: 20,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
               ),
               child: SafeArea(
                 child: Padding(
@@ -39,6 +48,7 @@ class SignupScreen extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // Back Button
                       Material(
                         color: Colors.white.withOpacity(0.2),
                         shape: const CircleBorder(),
@@ -68,9 +78,9 @@ class SignupScreen extends StatelessWidget {
               ),
             ),
 
-            const SizedBox(height: 40),
+            const SizedBox(height: 30),
 
-            // Form
+            // 2. Form Fields
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24.0),
               child: Column(
@@ -89,12 +99,13 @@ class SignupScreen extends StatelessWidget {
 
                   const SizedBox(height: 40),
 
+                  // 3. Register Button
                   SizedBox(
                     width: double.infinity,
                     height: 55,
                     child: ElevatedButton(
                       onPressed: () {
-                         // After signup, navigate to dashboard
+                         // After signup, navigate to respective dashboard
                         if (userRole == "Student") {
                           Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const StudentDashboard()));
                         } else if (userRole == "Teacher") {
@@ -105,12 +116,37 @@ class SignupScreen extends StatelessWidget {
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: primaryBlue,
+                        elevation: 10,
+                        shadowColor: primaryBlue.withOpacity(0.4),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                       ),
                       child: const Text("Register", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
                     ),
                   ),
+
                   const SizedBox(height: 30),
+
+                  // 4. Already have an account? Login (Redirect Logic)
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text("Already have an account? ", style: TextStyle(color: Colors.grey[600])),
+                      GestureDetector(
+                        onTap: () {
+                          // ✅ Navigate to Login Screen
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => LoginScreen(userRole: userRole)),
+                          );
+                        },
+                        child: Text(
+                          "Login",
+                          style: TextStyle(color: primaryBlue, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
                 ],
               ),
             ),
@@ -130,6 +166,7 @@ class SignupScreen extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: TextField(
         obscureText: isPassword,
+        style: const TextStyle(fontWeight: FontWeight.w500),
         decoration: InputDecoration(
           icon: Icon(icon, color: primaryColor),
           labelText: label,

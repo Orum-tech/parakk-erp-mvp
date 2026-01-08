@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'student_dashboard.dart';
 import 'teacher_dashboard.dart';
 import 'parent_dashboard.dart';
-import 'signup_screen.dart'; // ✅ Added Import for Signup Screen
 
 class LoginScreen extends StatelessWidget {
   final String userRole; // "Student", "Teacher", or "Parent"
@@ -11,7 +10,7 @@ class LoginScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Aesthetic Colors
+    // Aesthetic Colors (Consistent with Signup)
     final Color primaryBlue = const Color(0xFF1565C0);
     final Color gradientLight = const Color(0xFF64B5F6);
 
@@ -66,7 +65,7 @@ class LoginScreen extends StatelessWidget {
                       ),
                       const Spacer(),
                       Text(
-                        "$userRole Login",
+                        "Welcome Back",
                         style: const TextStyle(
                           fontSize: 32,
                           fontWeight: FontWeight.bold,
@@ -76,10 +75,11 @@ class LoginScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        "Please sign in to access your dashboard",
+                        "$userRole Login",
                         style: TextStyle(
-                          fontSize: 14,
+                          fontSize: 18,
                           color: Colors.white.withOpacity(0.9),
+                          fontWeight: FontWeight.w500
                         ),
                       ),
                       const SizedBox(height: 20),
@@ -98,7 +98,7 @@ class LoginScreen extends StatelessWidget {
                 children: [
                   _buildAestheticTextField(
                     label: userRole == "Parent" ? "Mobile Number" : "Email ID",
-                    icon: Icons.person_outline_rounded,
+                    icon: userRole == "Parent" ? Icons.phone_android_rounded : Icons.email_outlined,
                     primaryColor: primaryBlue,
                   ),
                   const SizedBox(height: 20),
@@ -116,7 +116,7 @@ class LoginScreen extends StatelessWidget {
                     child: TextButton(
                       onPressed: () {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text("Feature coming soon!")),
+                          const SnackBar(content: Text("Reset password feature coming soon!")),
                         );
                       },
                       child: Text(
@@ -178,31 +178,7 @@ class LoginScreen extends StatelessWidget {
                       ),
                     ),
                   ),
-
-                  const SizedBox(height: 30),
-
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text("New to Parakk? ",
-                          style: TextStyle(color: Colors.grey[600])),
-                      GestureDetector(
-                        onTap: () {
-                          // ✅ FIXED: Navigating to SignupScreen
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) => SignupScreen(userRole: userRole)),
-                          );
-                        },
-                        child: Text(
-                          "Sign up",
-                          style: TextStyle(
-                              color: primaryBlue, fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                    ],
-                  ),
+                  
                   const SizedBox(height: 20),
                 ],
               ),

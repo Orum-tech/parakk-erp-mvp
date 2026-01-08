@@ -1,6 +1,5 @@
-// FILE: lib/screens/role_selection_screen.dart
 import 'package:flutter/material.dart';
-import 'login_screen.dart';
+import 'signup_screen.dart'; // ✅ Updated Import (Login ki jagah Signup)
 
 class RoleSelectionScreen extends StatelessWidget {
   const RoleSelectionScreen({super.key});
@@ -21,7 +20,7 @@ class RoleSelectionScreen extends StatelessWidget {
             children: [
               const SizedBox(height: 40),
               
-              // 1. Modern Header
+              // 1. Modern Header (As per your existing design)
               Row(
                 children: [
                   Container(
@@ -117,9 +116,10 @@ class RoleSelectionScreen extends StatelessWidget {
   }) {
     return GestureDetector(
       onTap: () {
+        // ✅ UPDATED LOGIC: Navigates to SignupScreen instead of LoginScreen
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => LoginScreen(userRole: role)),
+          MaterialPageRoute(builder: (context) => SignupScreen(userRole: role)),
         );
       },
       child: Container(
