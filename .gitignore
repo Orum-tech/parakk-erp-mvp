@@ -1,45 +1,97 @@
-# Miscellaneous
-*.class
-*.log
-*.pyc
-*.swp
-.DS_Store
-.atom/
-.build/
-.buildlog/
-.history
-.svn/
-.swiftpm/
-migrate_working_dir/
-
-# IntelliJ related
-*.iml
-*.ipr
-*.iws
-.idea/
-
-# The .vscode folder contains launch configuration and tasks you configure in
-# VS Code which you may wish to be included in version control, so this line
-# is commented out by default.
-#.vscode/
-
-# Flutter/Dart/Pub related
-**/doc/api/
-**/ios/Flutter/.last_build_id
+# =========================
+# Flutter / Dart
+# =========================
 .dart_tool/
+.flutter-plugins
 .flutter-plugins-dependencies
+.packages
 .pub-cache/
 .pub/
-/build/
-/coverage/
+build/
+coverage/
 
-# Symbolication related
-app.*.symbols
+# Generated files
+*.g.dart
+*.freezed.dart
+*.mocks.dart
 
-# Obfuscation related
-app.*.map.json
+# =========================
+# Firebase
+# =========================
+.firebase/
+firebase-debug.log
+firestore-debug.log
 
-# Android Studio will place build artifacts here
-/android/app/debug
-/android/app/profile
-/android/app/release
+# Firebase local config (never commit secrets)
+firebase_options.dart
+
+# =========================
+# Android
+# =========================
+android/.gradle/
+android/app/build/
+android/local.properties
+android/key.properties
+android/*.jks
+android/.idea/
+
+# =========================
+# iOS
+# =========================
+ios/Pods/
+ios/.symlinks/
+ios/Flutter/Flutter.framework
+ios/Flutter/Flutter.podspec
+ios/Flutter/App.framework
+ios/Flutter/Generated.xcconfig
+ios/Flutter/flutter_export_environment.sh
+ios/Runner.xcworkspace/
+ios/Runner/GeneratedPluginRegistrant.*
+
+# =========================
+# macOS
+# =========================
+macos/Pods/
+macos/Flutter/ephemeral/
+macos/Runner.xcworkspace/
+
+# =========================
+# Windows
+# =========================
+windows/flutter/ephemeral/
+
+# =========================
+# Linux
+# =========================
+linux/flutter/ephemeral/
+
+# =========================
+# Web
+# =========================
+web/.dart_tool/
+web/build/
+
+# =========================
+# IDEs
+# =========================
+.idea/
+.vscode/
+*.iml
+
+# =========================
+# OS Files
+# =========================
+.DS_Store
+.DS_Store?
+Thumbs.db
+
+# =========================
+# Logs
+# =========================
+*.log
+
+# =========================
+# Environment files
+# =========================
+.env
+.env.*

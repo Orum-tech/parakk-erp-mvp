@@ -49,7 +49,7 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
       margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
       child: SwitchListTile(
-        activeColor: const Color(0xFF1565C0),
+        activeThumbColor: const Color(0xFF1565C0),
         title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
         subtitle: Text(subtitle, style: const TextStyle(fontSize: 12)),
         value: value,

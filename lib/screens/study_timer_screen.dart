@@ -10,11 +10,11 @@ class StudyTimerScreen extends StatefulWidget {
 
 class _StudyTimerScreenState extends State<StudyTimerScreen> with TickerProviderStateMixin {
   // Logic Variables
-  Stopwatch _stopwatch = Stopwatch();
+  final Stopwatch _stopwatch = Stopwatch();
   late Timer _timer;
   String _formattedTime = "00:00:00";
   bool _isRunning = false;
-  double _targetMinutes = 45;
+  final double _targetMinutes = 45;
   double _progressValue = 0.0;
   
   // FIX: Default subject select kar diya taaki error na aaye

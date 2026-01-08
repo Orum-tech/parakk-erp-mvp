@@ -69,7 +69,7 @@ class _ClassSettingsScreenState extends State<ClassSettingsScreen> {
       child: SwitchListTile(
         value: val,
         onChanged: onChanged,
-        activeColor: const Color(0xFF00897B),
+        activeThumbColor: const Color(0xFF00897B),
         title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
         subtitle: Text(sub, style: const TextStyle(fontSize: 12)),
       ),
