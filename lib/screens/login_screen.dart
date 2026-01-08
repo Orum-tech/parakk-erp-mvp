@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'student_dashboard.dart';
 import 'teacher_dashboard.dart';
 import 'parent_dashboard.dart';
+import 'signup_screen.dart'; // ✅ Added Import for Signup Screen
 
 class LoginScreen extends StatelessWidget {
   final String userRole; // "Student", "Teacher", or "Parent"
@@ -186,7 +187,14 @@ class LoginScreen extends StatelessWidget {
                       Text("New to Parakk? ",
                           style: TextStyle(color: Colors.grey[600])),
                       GestureDetector(
-                        onTap: () {},
+                        onTap: () {
+                          // ✅ FIXED: Navigating to SignupScreen
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => SignupScreen(userRole: userRole)),
+                          );
+                        },
                         child: Text(
                           "Sign up",
                           style: TextStyle(
