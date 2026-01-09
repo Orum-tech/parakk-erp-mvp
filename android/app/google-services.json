@@ -1,21 +1,21 @@
 {
   "project_info": {
-    "project_number": "496036008664",
-    "project_id": "parakk-erp",
-    "storage_bucket": "parakk-erp.firebasestorage.app"
+    "project_number": "698979802420",
+    "project_id": "erp-f4ef1",
+    "storage_bucket": "erp-f4ef1.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:496036008664:android:ea8b089e813ca188287dad",
+        "mobilesdk_app_id": "1:698979802420:android:68479bd2632a9903151961",
         "android_client_info": {
-          "package_name": "com.example.parakk_erp"
+          "package_name": "com.parakk.erp"
         }
       },
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyDzuZbVSdpJG5k23WJIJPpSi7FrdHgy8oY"
+          "current_key": "AIzaSyB8uAL9Kbd72B1e1bbqKW__EMHCRb-KdWM"
         }
       ],
       "services": {

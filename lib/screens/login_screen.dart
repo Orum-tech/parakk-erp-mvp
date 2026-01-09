@@ -1,199 +1,336 @@
 import 'package:flutter/material.dart';
+import '../services/auth_service.dart';
+import '../models/user_model.dart';
 import 'student_dashboard.dart';
 import 'teacher_dashboard.dart';
 import 'parent_dashboard.dart';
+import 'role_selection_screen.dart';
+import 'signup_screen.dart';
 
-class LoginScreen extends StatelessWidget {
-  final String userRole; // "Student", "Teacher", or "Parent"
+class LoginScreen extends StatefulWidget {
+  final String userRole;
 
   const LoginScreen({super.key, required this.userRole});
 
   @override
-  Widget build(BuildContext context) {
-    // Aesthetic Colors (Consistent with Signup)
-    final Color primaryBlue = const Color(0xFF1565C0);
-    final Color gradientLight = const Color(0xFF64B5F6);
+  State<LoginScreen> createState() => _LoginScreenState();
+}
 
+class _LoginScreenState extends State<LoginScreen> {
+  final _formKey = GlobalKey<FormState>();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  
+  bool _isLoading = false;
+  bool _obscurePassword = true;
+
+  final Color primaryBlue = const Color(0xFF1565C0);
+  final Color gradientLight = const Color(0xFF64B5F6);
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _handleLogin() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() => _isLoading = true);
+
+    try {
+      // Call login service
+      final user = await AuthService().login(
+        email: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
+      );
+
+      // Show success message
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Welcome back, ${user?.name ?? ''}!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+
+        // Navigate to appropriate dashboard
+        _navigateToDashboard(user!.role);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.toString().replaceFirst('Exception: ', '')),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  void _navigateToDashboard(UserRole role) {
+    Widget dashboard;
+    switch (role) {
+      case UserRole.student:
+        dashboard = const StudentDashboard();
+        break;
+      case UserRole.teacher:
+        dashboard = const TeacherDashboard();
+        break;
+      case UserRole.parent:
+        dashboard = const ParentDashboard();
+        break;
+    }
+    
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => dashboard),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
       body: SingleChildScrollView(
-        child: Column(
-          children: [
-            // 1. Big Curved Header
-            Container(
-              height: 280,
-              width: double.infinity,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [primaryBlue, gradientLight],
-                ),
-                borderRadius: const BorderRadius.only(
-                  bottomLeft: Radius.circular(40),
-                  bottomRight: Radius.circular(40),
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: primaryBlue.withOpacity(0.3),
-                    blurRadius: 20,
-                    offset: const Offset(0, 10),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            children: [
+              // 1. Big Curved Header
+              Container(
+                height: 280,
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [primaryBlue, gradientLight],
                   ),
-                ],
+                  borderRadius: const BorderRadius.only(
+                    bottomLeft: Radius.circular(40),
+                    bottomRight: Radius.circular(40),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: primaryBlue.withOpacity(0.3),
+                      blurRadius: 20,
+                      offset: const Offset(0, 10),
+                    ),
+                  ],
+                ),
+                child: SafeArea(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Back Button
+                        Material(
+                          color: Colors.white.withOpacity(0.2),
+                          shape: const CircleBorder(),
+                          child: InkWell(
+                            customBorder: const CircleBorder(),
+                            onTap: () {
+                              Navigator.pop(context);
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.all(10),
+                              child: const Icon(Icons.arrow_back_rounded,
+                                  color: Colors.white, size: 24),
+                            ),
+                          ),
+                        ),
+                        const Spacer(),
+                        const Text(
+                          "Welcome Back",
+                          style: TextStyle(
+                            fontSize: 32,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          "${widget.userRole} Login",
+                          style: TextStyle(
+                            fontSize: 18,
+                            color: Colors.white.withOpacity(0.9),
+                            fontWeight: FontWeight.w500
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                      ],
+                    ),
+                  ),
+                ),
               ),
-              child: SafeArea(
-                child: Padding(
-                  padding: const EdgeInsets.all(24.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Back Button
-                      Material(
-                        color: Colors.white.withOpacity(0.2),
-                        shape: const CircleBorder(),
-                        child: InkWell(
-                          customBorder: const CircleBorder(),
-                          onTap: () {
-                            Navigator.pop(context);
-                          },
-                          child: Container(
-                            padding: const EdgeInsets.all(10),
-                            child: const Icon(Icons.arrow_back_rounded,
-                                color: Colors.white, size: 24),
+
+              const SizedBox(height: 40),
+
+              // 2. Form Fields
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                child: Column(
+                  children: [
+                    // Email
+                    _buildAestheticTextField(
+                      controller: _emailController,
+                      label: "Email ID",
+                      icon: Icons.email_outlined,
+                      primaryColor: primaryBlue,
+                      keyboardType: TextInputType.emailAddress,
+                      validator: AuthService.validateEmail,
+                    ),
+                    const SizedBox(height: 20),
+                    
+                    // Password
+                    _buildAestheticTextField(
+                      controller: _passwordController,
+                      label: "Password",
+                      icon: Icons.lock_outline_rounded,
+                      primaryColor: primaryBlue,
+                      isPassword: true,
+                      obscureText: _obscurePassword,
+                      validator: AuthService.validatePassword,
+                      onToggleVisibility: () => setState(() => _obscurePassword = !_obscurePassword),
+                    ),
+
+                    const SizedBox(height: 10),
+
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton(
+                        onPressed: () {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text("Reset password feature coming soon!")),
+                          );
+                        },
+                        child: Text(
+                          "Forgot Password?",
+                          style: TextStyle(
+                            color: primaryBlue,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
                           ),
                         ),
                       ),
-                      const Spacer(),
-                      Text(
-                        "Welcome Back",
-                        style: const TextStyle(
-                          fontSize: 32,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                          letterSpacing: 0.5,
+                    ),
+
+                    const SizedBox(height: 30),
+
+                    // 3. Login Button
+                    SizedBox(
+                      width: double.infinity,
+                      height: 55,
+                      child: ElevatedButton(
+                        onPressed: _isLoading ? null : _handleLogin,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: primaryBlue,
+                          elevation: 10,
+                          shadowColor: primaryBlue.withOpacity(0.4),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
                         ),
+                        child: _isLoading
+                            ? const SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Text(
+                                "Sign In",
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                  letterSpacing: 1,
+                                ),
+                              ),
                       ),
-                      const SizedBox(height: 8),
-                      Text(
-                        "$userRole Login",
-                        style: TextStyle(
-                          fontSize: 18,
-                          color: Colors.white.withOpacity(0.9),
-                          fontWeight: FontWeight.w500
+                    ),
+                  
+                    const SizedBox(height: 20),
+                    
+                    // 4. Don't have an account? Sign up
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text("Don't have an account? ", style: TextStyle(color: Colors.grey[600])),
+                        GestureDetector(
+                          onTap: _isLoading
+                              ? null
+                              : () {
+                                  Navigator.pushReplacement(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => SignupScreen(userRole: widget.userRole),
+                                    ),
+                                  );
+                                },
+                          child: Text(
+                            "Sign Up",
+                            style: TextStyle(
+                              color: primaryBlue,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 20),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 40),
-
-            // 2. Form Fields
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0),
-              child: Column(
-                children: [
-                  _buildAestheticTextField(
-                    label: userRole == "Parent" ? "Mobile Number" : "Email ID",
-                    icon: userRole == "Parent" ? Icons.phone_android_rounded : Icons.email_outlined,
-                    primaryColor: primaryBlue,
-                  ),
-                  const SizedBox(height: 20),
-                  _buildAestheticTextField(
-                    label: "Password",
-                    icon: Icons.lock_outline_rounded,
-                    isPassword: true,
-                    primaryColor: primaryBlue,
-                  ),
-
-                  const SizedBox(height: 10),
-
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: TextButton(
-                      onPressed: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text("Reset password feature coming soon!")),
-                        );
-                      },
+                      ],
+                    ),
+                    
+                    const SizedBox(height: 10),
+                    
+                    // 5. Choose different role
+                    TextButton(
+                      onPressed: _isLoading
+                          ? null
+                          : () {
+                              Navigator.pushAndRemoveUntil(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const RoleSelectionScreen(),
+                                ),
+                                (route) => false,
+                              );
+                            },
                       child: Text(
-                        "Forgot Password?",
+                        "Choose different role",
                         style: TextStyle(
-                          color: primaryBlue,
-                          fontWeight: FontWeight.bold,
+                          color: Colors.grey[500],
                           fontSize: 13,
                         ),
                       ),
                     ),
-                  ),
-
-                  const SizedBox(height: 30),
-
-                  // 3. Login Button with Navigation Logic
-                  SizedBox(
-                    width: double.infinity,
-                    height: 55,
-                    child: ElevatedButton(
-                      onPressed: () {
-                        // Simulate Login Success & Navigate based on Role
-                        if (userRole == "Student") {
-                          Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) => const StudentDashboard()),
-                          );
-                        } else if (userRole == "Teacher") {
-                          Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) => const TeacherDashboard()),
-                          );
-                        } else if (userRole == "Parent") {
-                          Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) => const ParentDashboard()),
-                          );
-                        }
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: primaryBlue,
-                        elevation: 10,
-                        shadowColor: primaryBlue.withOpacity(0.4),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                      ),
-                      child: const Text(
-                        "Sign In",
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                          letterSpacing: 1,
-                        ),
-                      ),
-                    ),
-                  ),
-                  
-                  const SizedBox(height: 20),
-                ],
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 
   Widget _buildAestheticTextField({
+    required TextEditingController controller,
     required String label,
     required IconData icon,
     required Color primaryColor,
     bool isPassword = false,
+    bool obscureText = false,
+    TextInputType? keyboardType,
+    String? Function(String?)? validator,
+    VoidCallback? onToggleVisibility,
   }) {
     return Container(
       decoration: BoxDecoration(
@@ -202,8 +339,11 @@ class LoginScreen extends StatelessWidget {
         border: Border.all(color: Colors.grey[200]!),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      child: TextField(
-        obscureText: isPassword,
+      child: TextFormField(
+        controller: controller,
+        obscureText: obscureText,
+        keyboardType: keyboardType,
+        validator: validator,
         style: const TextStyle(fontWeight: FontWeight.w500),
         decoration: InputDecoration(
           icon: Icon(icon, color: primaryColor),
@@ -211,7 +351,13 @@ class LoginScreen extends StatelessWidget {
           labelStyle: TextStyle(color: Colors.grey[500]),
           border: InputBorder.none,
           suffixIcon: isPassword
-              ? Icon(Icons.visibility_off_rounded, color: Colors.grey[400])
+              ? IconButton(
+                  onPressed: onToggleVisibility,
+                  icon: Icon(
+                    obscureText ? Icons.visibility_off_rounded : Icons.visibility_rounded,
+                    color: Colors.grey[400],
+                  ),
+                )
               : null,
         ),
       ),
