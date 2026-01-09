@@ -23,7 +23,7 @@ firebase-debug.log
 firestore-debug.log
 
 # Firebase local config (never commit secrets)
-firebase_options.dart
+# firebase_options.dart
 
 # =========================
 # Android
