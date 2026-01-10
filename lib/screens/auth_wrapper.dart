@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../services/auth_service.dart';
+import '../services/onboarding_service.dart';
 import '../models/user_model.dart';
 import 'role_selection_screen.dart';
 import 'student_dashboard.dart';
 import 'teacher_dashboard.dart';
 import 'parent_dashboard.dart';
+import 'student_onboarding_screen.dart';
+import 'teacher_onboarding_screen.dart';
 
 class AuthWrapper extends StatelessWidget {
   const AuthWrapper({super.key});
@@ -43,7 +46,37 @@ class AuthWrapper extends StatelessWidget {
 
               if (userSnapshot.hasData && userSnapshot.data != null) {
                 final user = userSnapshot.data!;
-                return _getDashboard(user.role);
+                // Check if onboarding is complete
+                return FutureBuilder<bool>(
+                  future: OnboardingService().isOnboardingComplete(
+                    user.uid,
+                    user.roleString,
+                  ),
+                  builder: (context, onboardingSnapshot) {
+                    if (onboardingSnapshot.connectionState == ConnectionState.waiting) {
+                      return const Scaffold(
+                        body: Center(
+                          child: CircularProgressIndicator(
+                            color: Color(0xFF1565C0),
+                          ),
+                        ),
+                      );
+                    }
+
+                    final isOnboardingComplete = onboardingSnapshot.data ?? false;
+
+                    if (!isOnboardingComplete) {
+                      // Redirect to onboarding based on role
+                      if (user.role == UserRole.student) {
+                        return const StudentOnboardingScreen();
+                      } else if (user.role == UserRole.teacher) {
+                        return const TeacherOnboardingScreen();
+                      }
+                    }
+
+                    return _getDashboard(user.role);
+                  },
+                );
               }
 
               // If user exists in Auth but not in Firestore, logout and redirect to login

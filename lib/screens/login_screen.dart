@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import '../models/user_model.dart';
-import 'student_dashboard.dart';
-import 'teacher_dashboard.dart';
-import 'parent_dashboard.dart';
 import 'role_selection_screen.dart';
 import 'signup_screen.dart';
+import 'auth_wrapper.dart';
 
 class LoginScreen extends StatefulWidget {
   final String userRole;
@@ -55,8 +53,13 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         );
 
-        // Navigate to appropriate dashboard
-        _navigateToDashboard(user!.role);
+        // Navigate back to AuthWrapper root
+        // AuthWrapper will detect auth state change and check onboarding
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (context) => const AuthWrapper()),
+          (route) => false,
+        );
       }
     } catch (e) {
       if (mounted) {
@@ -72,25 +75,6 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  void _navigateToDashboard(UserRole role) {
-    Widget dashboard;
-    switch (role) {
-      case UserRole.student:
-        dashboard = const StudentDashboard();
-        break;
-      case UserRole.teacher:
-        dashboard = const TeacherDashboard();
-        break;
-      case UserRole.parent:
-        dashboard = const ParentDashboard();
-        break;
-    }
-    
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (context) => dashboard),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
