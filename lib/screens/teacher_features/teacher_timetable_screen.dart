@@ -4,7 +4,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../../services/timetable_service.dart';
 import '../../models/timetable_model.dart';
 import '../../models/teacher_model.dart';
-import '../../models/class_model.dart';
 
 class TeacherTimetableScreen extends StatefulWidget {
   const TeacherTimetableScreen({super.key});
