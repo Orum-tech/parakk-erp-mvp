@@ -78,6 +78,7 @@ class OnboardingService {
     required String employeeId,
     required List<String> subjects,
     required List<String> classIds,
+    String? classTeacherClassId,
     String? phoneNumber,
     String? address,
     String? department,
@@ -104,6 +105,7 @@ class OnboardingService {
         address: address,
         subjects: subjects,
         classIds: classIds,
+        classTeacherClassId: classTeacherClassId,
         department: department,
         qualification: qualification,
         yearsOfExperience: yearsOfExperience,
@@ -111,7 +113,61 @@ class OnboardingService {
         specialization: specialization,
       );
 
+      // Update teacher document
       await _firestore.collection('users').doc(user.uid).update(teacherModel.toMap());
+
+      // Update class document to set class teacher (only one class can have this teacher as class teacher)
+      if (classTeacherClassId != null && classTeacherClassId.isNotEmpty) {
+        final teacherName = userDoc.data()!['name'] ?? '';
+        
+        // Parse classId to get className and section (format: class_5_A)
+        final parts = classTeacherClassId.replaceFirst('class_', '').split('_');
+        if (parts.length == 2) {
+          final className = 'Class ${parts[0]}';
+          final section = parts[1];
+          
+          // Check if class document exists
+          final classRef = _firestore.collection('classes').doc(classTeacherClassId);
+          final classDoc = await classRef.get();
+          
+          final updateData = <String, dynamic>{
+            'classId': classTeacherClassId,
+            'className': className,
+            'section': section,
+            'classTeacherId': user.uid,
+            'classTeacherName': teacherName,
+            'updatedAt': Timestamp.now(),
+          };
+          
+          // Only set createdAt if document doesn't exist
+          if (!classDoc.exists) {
+            updateData['createdAt'] = Timestamp.now();
+          }
+          
+          await classRef.set(updateData, SetOptions(merge: true));
+          
+          // Clear class teacher from any other classes that might have this teacher assigned
+          // (in case teacher was previously assigned to a different class)
+          final otherClassesQuery = await _firestore
+              .collection('classes')
+              .where('classTeacherId', isEqualTo: user.uid)
+              .get();
+          
+          final batch = _firestore.batch();
+          for (var doc in otherClassesQuery.docs) {
+            if (doc.id != classTeacherClassId) {
+              batch.update(doc.reference, {
+                'classTeacherId': null,
+                'classTeacherName': null,
+                'updatedAt': Timestamp.now(),
+              });
+            }
+          }
+          if (otherClassesQuery.docs.isNotEmpty) {
+            await batch.commit();
+          }
+        }
+      }
     } catch (e) {
       throw Exception('Failed to complete onboarding: $e');
     }

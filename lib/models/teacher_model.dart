@@ -8,6 +8,7 @@ class TeacherModel extends UserModel {
   final String? address;
   final List<String>? subjects;
   final List<String>? classIds;
+  final String? classTeacherClassId; // Single class where teacher is class teacher
   final String? department;
   final String? qualification;
   final int? yearsOfExperience;
@@ -25,6 +26,7 @@ class TeacherModel extends UserModel {
     this.address,
     this.subjects,
     this.classIds,
+    this.classTeacherClassId,
     this.department,
     this.qualification,
     this.yearsOfExperience,
@@ -45,6 +47,7 @@ class TeacherModel extends UserModel {
       address: data['address'],
       subjects: List<String>.from(data['subjects'] ?? []),
       classIds: List<String>.from(data['classIds'] ?? []),
+      classTeacherClassId: data['classTeacherClassId'],
       department: data['department'],
       qualification: data['qualification'],
       yearsOfExperience: data['yearsOfExperience'],
@@ -63,6 +66,7 @@ class TeacherModel extends UserModel {
       'address': address,
       'subjects': subjects,
       'classIds': classIds,
+      'classTeacherClassId': classTeacherClassId,
       'department': department,
       'qualification': qualification,
       'yearsOfExperience': yearsOfExperience,
@@ -83,6 +87,7 @@ class TeacherModel extends UserModel {
     String? address,
     List<String>? subjects,
     List<String>? classIds,
+    String? classTeacherClassId,
     String? department,
     String? qualification,
     int? yearsOfExperience,
@@ -100,6 +105,7 @@ class TeacherModel extends UserModel {
       address: address ?? this.address,
       subjects: subjects ?? this.subjects,
       classIds: classIds ?? this.classIds,
+      classTeacherClassId: classTeacherClassId ?? this.classTeacherClassId,
       department: department ?? this.department,
       qualification: qualification ?? this.qualification,
       yearsOfExperience: yearsOfExperience ?? this.yearsOfExperience,

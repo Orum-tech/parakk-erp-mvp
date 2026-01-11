@@ -1,62 +1,207 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../services/timetable_service.dart';
+import '../../models/timetable_model.dart';
+import '../../models/student_model.dart';
 
-class TimetableScreen extends StatelessWidget {
+class TimetableScreen extends StatefulWidget {
   const TimetableScreen({super.key});
 
   @override
+  State<TimetableScreen> createState() => _TimetableScreenState();
+}
+
+class _TimetableScreenState extends State<TimetableScreen> {
+  final TimetableService _timetableService = TimetableService();
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  
+  StudentModel? _student;
+  bool _isLoading = true;
+  
+  final List<DayOfWeek> _days = [
+    DayOfWeek.monday,
+    DayOfWeek.tuesday,
+    DayOfWeek.wednesday,
+    DayOfWeek.thursday,
+    DayOfWeek.friday,
+    DayOfWeek.saturday,
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadStudentData();
+  }
+
+  Future<void> _loadStudentData() async {
+    setState(() => _isLoading = true);
+    try {
+      final user = _auth.currentUser;
+      if (user == null) {
+        setState(() => _isLoading = false);
+        return;
+      }
+
+      // Get student data
+      final studentDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
+      
+      if (studentDoc.exists) {
+        setState(() {
+          _student = StudentModel.fromDocument(studentDoc);
+          _isLoading = false;
+        });
+      } else {
+        setState(() => _isLoading = false);
+      }
+    } catch (e) {
+      setState(() => _isLoading = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return DefaultTabController(
-      length: 6,
-      child: Scaffold(
+    if (_isLoading) {
+      return Scaffold(
         backgroundColor: const Color(0xFFF4F6F9),
         appBar: AppBar(
           title: const Text("Weekly Schedule", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
           backgroundColor: Colors.white,
           elevation: 0,
           iconTheme: const IconThemeData(color: Colors.black),
-          bottom: const TabBar(
-            isScrollable: true,
-            labelColor: Color(0xFF1565C0),
-            unselectedLabelColor: Colors.grey,
-            indicatorColor: Color(0xFF1565C0),
-            indicatorWeight: 3,
-            labelStyle: TextStyle(fontWeight: FontWeight.bold),
-            tabs: [
-              Tab(text: "Mon"), Tab(text: "Tue"), Tab(text: "Wed"),
-              Tab(text: "Thu"), Tab(text: "Fri"), Tab(text: "Sat"),
+        ),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (_student == null || _student!.classId == null) {
+      return Scaffold(
+        backgroundColor: const Color(0xFFF4F6F9),
+        appBar: AppBar(
+          title: const Text("Weekly Schedule", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+          backgroundColor: Colors.white,
+          elevation: 0,
+          iconTheme: const IconThemeData(color: Colors.black),
+        ),
+        body: const Center(
+          child: Text('No class assigned. Please contact your administrator.'),
+        ),
+      );
+    }
+
+    final today = DateTime.now();
+    final currentDayIndex = today.weekday - 1; // Monday = 0, Sunday = 6
+    // Clamp to valid range (0-5) since we only have 6 days (Mon-Sat)
+    final safeDayIndex = currentDayIndex < _days.length ? currentDayIndex : 0;
+    final initialTab = safeDayIndex;
+
+    return DefaultTabController(
+      initialIndex: initialTab,
+      length: _days.length,
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF4F6F9),
+        appBar: AppBar(
+          title: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text("Weekly Schedule", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+              if (_student?.className != null)
+                Text(
+                  _student!.className!,
+                  style: const TextStyle(color: Colors.grey, fontSize: 12),
+                ),
             ],
+          ),
+          backgroundColor: Colors.white,
+          elevation: 0,
+          iconTheme: const IconThemeData(color: Colors.black),
+          bottom: TabBar(
+            isScrollable: true,
+            labelColor: const Color(0xFF1565C0),
+            unselectedLabelColor: Colors.grey,
+            indicatorColor: const Color(0xFF1565C0),
+            indicatorWeight: 3,
+            labelStyle: const TextStyle(fontWeight: FontWeight.bold),
+            tabs: _days.map((day) => Tab(text: _getDayAbbreviation(day))).toList(),
           ),
         ),
         body: TabBarView(
-          children: [
-            _buildDayList(isActiveDay: true), // Monday (Active)
-            _buildDayList(), _buildDayList(), _buildDayList(), _buildDayList(),
-            const Center(child: Text("Weekend Mode On! 🌴")),
-          ],
+          children: _days.map((day) => _buildDayList(day, day == _days[safeDayIndex])).toList(),
         ),
       ),
     );
   }
 
-  Widget _buildDayList({bool isActiveDay = false}) {
-    return ListView(
-      padding: const EdgeInsets.all(20),
-      children: [
-        if(isActiveDay) 
-          Padding(
-            padding: const EdgeInsets.only(bottom: 20),
-            child: Text("Today's Classes", style: TextStyle(color: Colors.grey[600], fontWeight: FontWeight.bold)),
-          ),
-        _buildClassCard("08:30 AM", "09:30 AM", "Mathematics", "Algebra - Ch 4", "Mrs. Radhika", Colors.orange, isLive: isActiveDay),
-        _buildClassCard("09:30 AM", "10:30 AM", "Physics", "Laws of Motion", "Mr. Verma", Colors.blue),
-        _buildClassCard("10:30 AM", "11:00 AM", "Break", "Lunch Time", "Cafeteria", Colors.grey, isBreak: true),
-        _buildClassCard("11:00 AM", "12:00 PM", "Chemistry", "Periodic Table", "Ms. Anjali", Colors.purple),
-        _buildClassCard("12:00 PM", "01:00 PM", "Computer Sci", "Lab Session", "Lab 2", Colors.indigo),
-      ],
+  Widget _buildDayList(DayOfWeek day, bool isActiveDay) {
+    if (_student?.classId == null) {
+      return const Center(child: Text('No class assigned'));
+    }
+
+    return StreamBuilder<List<TimetableModel>>(
+      stream: _timetableService.getStudentTimetable(_student!.classId!),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        if (snapshot.hasError) {
+          return Center(child: Text('Error: ${snapshot.error}'));
+        }
+
+        final allEntries = snapshot.data ?? [];
+        final dayEntries = allEntries
+            .where((entry) => entry.day == day)
+            .toList()
+          ..sort((a, b) => a.periodNumber.compareTo(b.periodNumber));
+
+        if (dayEntries.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.calendar_today_outlined, size: 64, color: Colors.grey[400]),
+                const SizedBox(height: 16),
+                Text(
+                  'No schedule for ${_getDayName(day)}',
+                  style: TextStyle(color: Colors.grey[600], fontSize: 16),
+                ),
+              ],
+            ),
+          );
+        }
+
+        return ListView(
+          padding: const EdgeInsets.all(20),
+          children: [
+            if (isActiveDay)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 20),
+                child: Text(
+                  "Today's Classes",
+                  style: TextStyle(color: Colors.grey[600], fontWeight: FontWeight.bold),
+                ),
+              ),
+            ...dayEntries.map((entry) => _buildClassCard(entry, isActiveDay)),
+          ],
+        );
+      },
     );
   }
 
-  Widget _buildClassCard(String start, String end, String subject, String topic, String teacher, Color color, {bool isBreak = false, bool isLive = false}) {
+  Widget _buildClassCard(TimetableModel entry, bool isLive) {
+    final startTime = _formatTime(entry.startTime);
+    final endTime = _formatTime(entry.endTime);
+    final color = _getSubjectColor(entry.subjectName);
+    final isBreak = entry.isBreak;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       child: Row(
@@ -64,9 +209,14 @@ class TimetableScreen extends StatelessWidget {
         children: [
           Column(
             children: [
-              Text(start, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
-              Container(height: 40, width: 2, color: Colors.grey[300], margin: const EdgeInsets.symmetric(vertical: 5)),
-              Text(end, style: TextStyle(color: Colors.grey[400], fontSize: 12)),
+              Text(startTime, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+              Container(
+                height: 40,
+                width: 2,
+                color: Colors.grey[300],
+                margin: const EdgeInsets.symmetric(vertical: 5),
+              ),
+              Text(endTime, style: TextStyle(color: Colors.grey[400], fontSize: 12)),
             ],
           ),
           const SizedBox(width: 15),
@@ -85,23 +235,75 @@ class TimetableScreen extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(subject, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: isBreak ? Colors.grey : Colors.black87)),
-                      if(isLive) 
-                        Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), decoration: BoxDecoration(color: Colors.blue, borderRadius: BorderRadius.circular(8)), child: const Text("LIVE", style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold))),
+                      Expanded(
+                        child: Text(
+                          isBreak ? entry.breakType ?? 'Break' : entry.subjectName,
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: isBreak ? Colors.grey : Colors.black87,
+                          ),
+                        ),
+                      ),
+                      if (isLive && !isBreak)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.blue,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Text(
+                            "LIVE",
+                            style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                          ),
+                        ),
                     ],
                   ),
-                  if(!isBreak) ...[
+                  if (!isBreak) ...[
                     const SizedBox(height: 5),
-                    Text(topic, style: TextStyle(color: color, fontWeight: FontWeight.w600, fontSize: 13)),
+                    Row(
+                      children: [
+                        Container(
+                          width: 4,
+                          height: 4,
+                          decoration: BoxDecoration(
+                            color: color,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          "Period ${entry.periodNumber}",
+                          style: TextStyle(color: color, fontWeight: FontWeight.w600, fontSize: 13),
+                        ),
+                      ],
+                    ),
                     const SizedBox(height: 10),
                     Row(
                       children: [
-                        CircleAvatar(radius: 10, backgroundColor: color.withOpacity(0.1), child: Icon(Icons.person, size: 12, color: color)),
+                        CircleAvatar(
+                          radius: 10,
+                          backgroundColor: color.withOpacity(0.1),
+                          child: Icon(Icons.person, size: 12, color: color),
+                        ),
                         const SizedBox(width: 8),
-                        Text(teacher, style: TextStyle(color: Colors.grey[600], fontSize: 12)),
+                        Expanded(
+                          child: Text(
+                            entry.teacherName,
+                            style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                          ),
+                        ),
+                        if (entry.room != null) ...[
+                          const Icon(Icons.room, size: 14, color: Colors.grey),
+                          const SizedBox(width: 4),
+                          Text(
+                            entry.room!,
+                            style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                          ),
+                        ],
                       ],
-                    )
-                  ]
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -109,5 +311,65 @@ class TimetableScreen extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  String _getDayName(DayOfWeek day) {
+    switch (day) {
+      case DayOfWeek.monday:
+        return 'Monday';
+      case DayOfWeek.tuesday:
+        return 'Tuesday';
+      case DayOfWeek.wednesday:
+        return 'Wednesday';
+      case DayOfWeek.thursday:
+        return 'Thursday';
+      case DayOfWeek.friday:
+        return 'Friday';
+      case DayOfWeek.saturday:
+        return 'Saturday';
+      case DayOfWeek.sunday:
+        return 'Sunday';
+    }
+  }
+
+  String _getDayAbbreviation(DayOfWeek day) {
+    switch (day) {
+      case DayOfWeek.monday:
+        return 'Mon';
+      case DayOfWeek.tuesday:
+        return 'Tue';
+      case DayOfWeek.wednesday:
+        return 'Wed';
+      case DayOfWeek.thursday:
+        return 'Thu';
+      case DayOfWeek.friday:
+        return 'Fri';
+      case DayOfWeek.saturday:
+        return 'Sat';
+      case DayOfWeek.sunday:
+        return 'Sun';
+    }
+  }
+
+  String _formatTime(DateTime time) {
+    final hour = time.hour;
+    final minute = time.minute.toString().padLeft(2, '0');
+    final period = hour >= 12 ? 'PM' : 'AM';
+    final displayHour = hour > 12 ? hour - 12 : (hour == 0 ? 12 : hour);
+    return '$displayHour:$minute $period';
+  }
+
+  Color _getSubjectColor(String subject) {
+    final colors = [
+      Colors.orange,
+      Colors.blue,
+      Colors.purple,
+      Colors.green,
+      Colors.red,
+      Colors.teal,
+      Colors.pink,
+      Colors.indigo,
+    ];
+    return colors[subject.hashCode % colors.length];
   }
 }

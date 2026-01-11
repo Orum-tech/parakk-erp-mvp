@@ -18,7 +18,7 @@ class _HomeworkSubmissionScreenState extends State<HomeworkSubmissionScreen> {
   final _submissionController = TextEditingController();
   
   bool _isLoading = false;
-  List<String> _attachmentUrls = [];
+  final List<String> _attachmentUrls = [];
 
   @override
   void dispose() {

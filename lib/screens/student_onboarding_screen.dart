@@ -59,7 +59,7 @@ class _StudentOnboardingScreenState extends State<StudentOnboardingScreen> {
 
     try {
       // Create classId from selected class and section
-      final classId = 'class_${_selectedClass}_${_selectedSection}';
+      final classId = 'class_${_selectedClass}_$_selectedSection';
       final className = 'Class $_selectedClass';
       final section = _selectedSection!;
 
@@ -328,7 +328,7 @@ class _StudentOnboardingScreenState extends State<StudentOnboardingScreen> {
       ),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: DropdownButtonFormField<String>(
-        value: _selectedClass,
+        initialValue: _selectedClass,
         decoration: InputDecoration(
           icon: Icon(Icons.class_outlined, color: primaryBlue),
           labelText: "Class *",
@@ -363,7 +363,7 @@ class _StudentOnboardingScreenState extends State<StudentOnboardingScreen> {
       ),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: DropdownButtonFormField<String>(
-        value: _selectedSection,
+        initialValue: _selectedSection,
         decoration: InputDecoration(
           icon: Icon(Icons.people_outline, color: primaryBlue),
           labelText: "Section *",

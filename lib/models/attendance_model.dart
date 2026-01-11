@@ -93,6 +93,21 @@ class AttendanceModel {
     }
   }
 
+  static String statusToString(AttendanceStatus status) {
+    switch (status) {
+      case AttendanceStatus.present:
+        return 'Present';
+      case AttendanceStatus.absent:
+        return 'Absent';
+      case AttendanceStatus.late:
+        return 'Late';
+      case AttendanceStatus.excused:
+        return 'Excused';
+      case AttendanceStatus.holiday:
+        return 'Holiday';
+    }
+  }
+
   Map<String, dynamic> toMap() {
     return {
       'attendanceId': attendanceId,

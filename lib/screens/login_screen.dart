@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
-import '../models/user_model.dart';
 import 'role_selection_screen.dart';
 import 'signup_screen.dart';
 import 'auth_wrapper.dart';

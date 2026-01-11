@@ -27,9 +27,9 @@ class _CreateHomeworkScreenState extends State<CreateHomeworkScreen> {
   bool _isLoading = false;
   bool _isLoadingData = true;
   List<String> _availableClasses = [];
-  List<String> _availableSections = ['A', 'B', 'C', 'D'];
+  final List<String> _availableSections = ['A', 'B', 'C', 'D'];
   List<String> _availableSubjects = [];
-  List<String> _attachmentUrls = [];
+  final List<String> _attachmentUrls = [];
 
   @override
   void initState() {
@@ -99,7 +99,7 @@ class _CreateHomeworkScreenState extends State<CreateHomeworkScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final classId = 'class_${_selectedClass}_${_selectedSection}';
+      final classId = 'class_${_selectedClass}_$_selectedSection';
       final className = 'Class $_selectedClass';
       final section = _selectedSection!;
 

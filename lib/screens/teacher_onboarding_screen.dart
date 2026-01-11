@@ -26,6 +26,7 @@ class _TeacherOnboardingScreenState extends State<TeacherOnboardingScreen> {
   // State variables
   final List<String> _selectedSubjects = [];
   final List<String> _selectedClassIds = [];
+  String? _classTeacherClassId; // Single class where teacher is class teacher
   String? _selectedSubjectToAdd;
   String? _selectedClassToAdd;
   String? _selectedSectionToAdd;
@@ -92,7 +93,7 @@ class _TeacherOnboardingScreenState extends State<TeacherOnboardingScreen> {
 
   void _addClass() {
     if (_selectedClassToAdd != null && _selectedSectionToAdd != null) {
-      final classId = 'class_${_selectedClassToAdd}_${_selectedSectionToAdd}';
+      final classId = 'class_${_selectedClassToAdd}_$_selectedSectionToAdd';
       if (!_selectedClassIds.contains(classId)) {
         setState(() {
           _selectedClassIds.add(classId);
@@ -106,6 +107,16 @@ class _TeacherOnboardingScreenState extends State<TeacherOnboardingScreen> {
   void _removeClass(String classId) {
     setState(() {
       _selectedClassIds.remove(classId);
+      if (_classTeacherClassId == classId) {
+        _classTeacherClassId = null;
+      }
+    });
+  }
+
+  void _setClassTeacher(String classId) {
+    setState(() {
+      // Only one class can be class teacher at a time
+      _classTeacherClassId = (_classTeacherClassId == classId) ? null : classId;
     });
   }
 
@@ -140,6 +151,7 @@ class _TeacherOnboardingScreenState extends State<TeacherOnboardingScreen> {
         employeeId: _employeeIdController.text.trim(),
         subjects: _selectedSubjects,
         classIds: _selectedClassIds,
+        classTeacherClassId: _classTeacherClassId,
         phoneNumber: _phoneNumberController.text.trim().isEmpty 
             ? null 
             : _phoneNumberController.text.trim(),
@@ -517,18 +529,82 @@ class _TeacherOnboardingScreenState extends State<TeacherOnboardingScreen> {
         ),
         if (_selectedClassIds.isNotEmpty) ...[
           const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: _selectedClassIds.map((classId) {
-              return Chip(
-                label: Text(_getClassDisplayName(classId)),
-                onDeleted: () => _removeClass(classId),
-                deleteIcon: const Icon(Icons.close, size: 18),
-                backgroundColor: primaryTeal.withOpacity(0.1),
-                labelStyle: TextStyle(color: primaryTeal, fontWeight: FontWeight.w600),
-              );
-            }).toList(),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.grey[50],
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey[200]!),
+            ),
+            child: Column(
+              children: _selectedClassIds.map((classId) {
+                final isClassTeacher = _classTeacherClassId == classId;
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: isClassTeacher ? primaryTeal : Colors.grey[300]!,
+                      width: isClassTeacher ? 2 : 1,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Row(
+                          children: [
+                            Radio<String>(
+                              value: classId,
+                              groupValue: _classTeacherClassId,
+                              onChanged: (value) => _setClassTeacher(value!),
+                              activeColor: primaryTeal,
+                            ),
+                            const SizedBox(width: 8),
+                            Icon(
+                              Icons.person_outline,
+                              size: 18,
+                              color: isClassTeacher ? primaryTeal : Colors.grey[400],
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    _getClassDisplayName(classId),
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 14,
+                                      color: isClassTeacher ? primaryTeal : Colors.black87,
+                                    ),
+                                  ),
+                                  if (isClassTeacher)
+                                    Text(
+                                      'Class Teacher',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: primaryTeal,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close, size: 18),
+                        color: Colors.grey[600],
+                        onPressed: () => _removeClass(classId),
+                      ),
+                    ],
+                  ),
+                );
+              }).toList(),
+            ),
           ),
         ],
       ],
@@ -544,7 +620,7 @@ class _TeacherOnboardingScreenState extends State<TeacherOnboardingScreen> {
       ),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       child: DropdownButtonFormField<String>(
-        value: _selectedSubjectToAdd,
+        initialValue: _selectedSubjectToAdd,
         decoration: InputDecoration(
           hintText: 'Select subject',
           hintStyle: TextStyle(color: Colors.grey[500], fontSize: 14),
@@ -573,7 +649,7 @@ class _TeacherOnboardingScreenState extends State<TeacherOnboardingScreen> {
       ),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       child: DropdownButtonFormField<String>(
-        value: _selectedClassToAdd,
+        initialValue: _selectedClassToAdd,
         decoration: InputDecoration(
           hintText: 'Class',
           hintStyle: TextStyle(color: Colors.grey[500], fontSize: 14),
@@ -602,7 +678,7 @@ class _TeacherOnboardingScreenState extends State<TeacherOnboardingScreen> {
       ),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       child: DropdownButtonFormField<String>(
-        value: _selectedSectionToAdd,
+        initialValue: _selectedSectionToAdd,
         decoration: InputDecoration(
           hintText: 'Section',
           hintStyle: TextStyle(color: Colors.grey[500], fontSize: 14),
