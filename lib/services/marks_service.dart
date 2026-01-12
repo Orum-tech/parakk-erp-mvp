@@ -231,7 +231,7 @@ class MarksService {
         if (student == null) continue;
 
         // Create marks document ID
-        final marksId = '${examId}_${studentId}';
+        final marksId = '${examId}_$studentId';
         final marksRef = _firestore.collection('marks').doc(marksId);
 
         final marks = MarksModel(

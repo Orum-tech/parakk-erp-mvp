@@ -166,7 +166,7 @@ class _MarksEntryScreenState extends State<MarksEntryScreen> {
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<ExamType>(
-                value: selectedType,
+                initialValue: selectedType,
                 decoration: const InputDecoration(
                   labelText: 'Exam Type *',
                   border: OutlineInputBorder(),
@@ -380,7 +380,7 @@ class _MarksEntryScreenState extends State<MarksEntryScreen> {
               children: [
                 // Class Selection
                 DropdownButtonFormField<String>(
-                  value: _selectedClassId,
+                  initialValue: _selectedClassId,
                   decoration: const InputDecoration(
                     labelText: 'Select Class *',
                     border: OutlineInputBorder(),
@@ -409,7 +409,7 @@ class _MarksEntryScreenState extends State<MarksEntryScreen> {
                 const SizedBox(height: 15),
                 // Subject Selection
                 DropdownButtonFormField<String>(
-                  value: _selectedSubjectId,
+                  initialValue: _selectedSubjectId,
                   decoration: const InputDecoration(
                     labelText: 'Select Subject *',
                     border: OutlineInputBorder(),
@@ -440,7 +440,7 @@ class _MarksEntryScreenState extends State<MarksEntryScreen> {
                     children: [
                       Expanded(
                         child: DropdownButtonFormField<String>(
-                          value: _selectedExamId,
+                          initialValue: _selectedExamId,
                           decoration: const InputDecoration(
                             labelText: 'Select Exam *',
                             border: OutlineInputBorder(),

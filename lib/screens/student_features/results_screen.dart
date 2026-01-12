@@ -272,7 +272,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
                         borderRadius: BorderRadius.circular(30),
                       ),
                       child: Text(
-                        'Rank: ${_rank}${_rank == 1 ? 'st' : _rank == 2 ? 'nd' : _rank == 3 ? 'rd' : 'th'} in Class',
+                        'Rank: $_rank${_rank == 1 ? 'st' : _rank == 2 ? 'nd' : _rank == 3 ? 'rd' : 'th'} in Class',
                         style: const TextStyle(color: Colors.white),
                       ),
                     ),
