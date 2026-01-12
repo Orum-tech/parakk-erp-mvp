@@ -264,12 +264,27 @@ class NotesService {
     Function(double)? onProgress,
   }) async {
     try {
+      // Validate inputs
+      if (userId.isEmpty) {
+        throw Exception('User ID cannot be empty');
+      }
+      if (classId.isEmpty) {
+        throw Exception('Class ID cannot be empty');
+      }
+      if (subjectId.isEmpty) {
+        throw Exception('Subject ID cannot be empty');
+      }
+      
       // Verify file exists
       if (!await file.exists()) {
         throw Exception('File does not exist');
       }
 
       final fileName = file.path.split('/').last;
+      if (fileName.isEmpty) {
+        throw Exception('Invalid file name');
+      }
+      
       final timestamp = DateTime.now().millisecondsSinceEpoch;
       final fileExtension = fileName.split('.').last;
       final storagePath = 'notes/$userId/$classId/$subjectId/${timestamp}_$fileName';
@@ -291,18 +306,23 @@ class NotesService {
 
       // Listen to upload progress
       uploadTask.snapshotEvents.listen((snapshot) {
-        if (onProgress != null) {
+        if (onProgress != null && snapshot.totalBytes > 0) {
           final progress = snapshot.bytesTransferred / snapshot.totalBytes;
           onProgress(progress);
         }
       });
 
-      // Wait for upload to complete
-      await uploadTask;
-
-      // Get download URL
-      final downloadUrl = await ref.getDownloadURL();
-      return downloadUrl;
+      // Wait for upload to complete and get the snapshot
+      final TaskSnapshot snapshot = await uploadTask.whenComplete(() {});
+      
+      // Check if upload was successful
+      if (snapshot.state == TaskState.success) {
+        // Get download URL from the snapshot
+        final downloadUrl = await snapshot.ref.getDownloadURL();
+        return downloadUrl;
+      } else {
+        throw Exception('Upload failed with state: ${snapshot.state}');
+      }
     } catch (e) {
       print('Upload error: $e'); // Debug print
       throw Exception('Failed to upload file: $e');

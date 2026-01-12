@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import '../../services/homework_service.dart';
 import '../../models/homework_model.dart';
 import 'create_homework_screen.dart';
+import 'homework_submissions_screen.dart';
 
 class HomeworkScreen extends StatefulWidget {
   const HomeworkScreen({super.key});
@@ -81,7 +82,12 @@ class _HomeworkScreenState extends State<HomeworkScreen> {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: InkWell(
         onTap: () {
-          // TODO: Navigate to homework detail/submissions screen
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => HomeworkSubmissionsScreen(homework: hw),
+            ),
+          );
         },
         borderRadius: BorderRadius.circular(12),
         child: Padding(

@@ -105,6 +105,11 @@ class _MarksEntryScreenState extends State<MarksEntryScreen> {
         _students = students;
         _isLoading = false;
       });
+      
+      // Load existing marks if exam is already selected
+      if (_selectedExamId != null) {
+        _loadExistingMarks();
+      }
     } catch (e) {
       setState(() => _isLoading = false);
       if (mounted) {
@@ -133,11 +138,68 @@ class _MarksEntryScreenState extends State<MarksEntryScreen> {
           _examDate = exams.first.examDate;
         }
       });
+      
+      // Load existing marks if exam is already selected and students are loaded
+      if (_selectedExamId != null && _students.isNotEmpty) {
+        _loadExistingMarks();
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error loading exams: $e'), backgroundColor: Colors.orange),
         );
+      }
+    }
+  }
+
+  void _clearMarksControllers() {
+    // Clear all marks and remarks controllers
+    for (var controller in _marksControllers.values) {
+      controller.clear();
+    }
+    for (var controller in _remarksControllers.values) {
+      controller.clear();
+    }
+  }
+
+  Future<void> _loadExistingMarks() async {
+    if (_selectedExamId == null || _students.isEmpty) return;
+
+    try {
+      final existingMarks = await _marksService.getMarksByExam(_selectedExamId!);
+      
+      // Create a map of studentId -> marks for quick lookup
+      final marksMap = {for (var m in existingMarks) m.studentId: m};
+
+      // Populate controllers with existing marks
+      for (var student in _students) {
+        final existingMark = marksMap[student.uid];
+        if (existingMark != null) {
+          // Set marks controller
+          if (!_marksControllers.containsKey(student.uid)) {
+            _marksControllers[student.uid] = TextEditingController();
+          }
+          _marksControllers[student.uid]!.text = existingMark.marksObtained.toString();
+          
+          // Set remarks controller
+          if (existingMark.remarks != null && existingMark.remarks!.isNotEmpty) {
+            if (!_remarksControllers.containsKey(student.uid)) {
+              _remarksControllers[student.uid] = TextEditingController();
+            }
+            _remarksControllers[student.uid]!.text = existingMark.remarks!;
+          }
+        } else {
+          // Clear controllers if no marks exist for this student
+          _marksControllers[student.uid]?.clear();
+          _remarksControllers[student.uid]?.clear();
+        }
+      }
+      
+      setState(() {}); // Refresh UI to show loaded marks
+    } catch (e) {
+      // Silently fail - it's okay if marks don't exist yet
+      if (mounted) {
+        debugPrint('Error loading existing marks: $e');
       }
     }
   }
@@ -401,6 +463,8 @@ class _MarksEntryScreenState extends State<MarksEntryScreen> {
                       _selectedExamId = null;
                       _selectedExam = null;
                     });
+                    // Clear marks controllers when class changes
+                    _clearMarksControllers();
                     if (value != null) {
                       _loadStudents();
                     }
@@ -428,6 +492,8 @@ class _MarksEntryScreenState extends State<MarksEntryScreen> {
                       _selectedExamId = null;
                       _selectedExam = null;
                     });
+                    // Clear marks controllers when subject changes
+                    _clearMarksControllers();
                     if (value != null && _selectedClassId != null) {
                       _loadExams();
                     }
@@ -459,6 +525,10 @@ class _MarksEntryScreenState extends State<MarksEntryScreen> {
                               _maxMarks = _selectedExam!.maxMarks;
                               _examDate = _selectedExam!.examDate;
                             });
+                            // Load existing marks for this exam
+                            if (value != null && _students.isNotEmpty) {
+                              _loadExistingMarks();
+                            }
                           },
                         ),
                       ),
