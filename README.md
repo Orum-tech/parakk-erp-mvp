@@ -139,4 +139,5 @@ For issues, feature requests, or contributions, please refer to the project repo
 ---
 
 **Version**: 1.0.0  
-**Last Updated**: 2024
+**Last Updated**: 2026
+**Maintained By**: Amritesh & Parakk ERP Development Team
