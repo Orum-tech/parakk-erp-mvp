@@ -455,7 +455,7 @@ class _UploadNotesScreenState extends State<UploadNotesScreen> {
           children: [
             // Class Selection
             DropdownButtonFormField<String>(
-              value: _selectedClassId,
+              initialValue: _selectedClassId,
               decoration: const InputDecoration(
                 labelText: 'Select Class *',
                 border: OutlineInputBorder(),
@@ -480,7 +480,7 @@ class _UploadNotesScreenState extends State<UploadNotesScreen> {
 
             // Subject Selection
             DropdownButtonFormField<String>(
-              value: _selectedSubjectId,
+              initialValue: _selectedSubjectId,
               decoration: const InputDecoration(
                 labelText: 'Select Subject *',
                 border: OutlineInputBorder(),

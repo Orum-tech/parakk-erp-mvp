@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import '../../services/gemini_service.dart';
 
-class DoubtSolverScreen extends StatefulWidget {
-  const DoubtSolverScreen({super.key});
+class AITutorScreen extends StatefulWidget {
+  const AITutorScreen({super.key});
 
   @override
-  State<DoubtSolverScreen> createState() => _DoubtSolverScreenState();
+  State<AITutorScreen> createState() => _AITutorScreenState();
 }
 
-class _DoubtSolverScreenState extends State<DoubtSolverScreen> {
+class _AITutorScreenState extends State<AITutorScreen> {
   final TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final GeminiService _geminiService = GeminiService();
@@ -21,7 +21,7 @@ class _DoubtSolverScreenState extends State<DoubtSolverScreen> {
     // Add welcome message
     _messages.add({
       "sender": "ai",
-      "text": "Hello! I am your AI Doubt Solver. 🤖\nAsk me anything about your subjects, homework, or any academic doubts you have!"
+      "text": "Hello! I'm your AI Tutor. 🤖\nI'm here to help you with your academic questions 24/7. Ask me anything about your subjects, homework, or concepts you're struggling with!"
     });
     // Scroll to bottom after initial build
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -64,7 +64,7 @@ class _DoubtSolverScreenState extends State<DoubtSolverScreen> {
     try {
       final response = await _geminiService.getResponse(
         userMessage,
-        context: 'You are an AI doubt solver helping students with their homework and academic questions. Provide clear, step-by-step explanations and solutions.',
+        context: 'You are an AI tutor helping students with their academic questions. Provide clear, educational, and helpful responses.',
       );
 
       if (mounted) {
@@ -109,8 +109,8 @@ class _DoubtSolverScreenState extends State<DoubtSolverScreen> {
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text("AI Master", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 16)),
-                Text("Always Online", style: TextStyle(color: Colors.green, fontSize: 12)),
+                Text("AI Tutor", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 16)),
+                Text("24/7 Academic Assistance", style: TextStyle(color: Colors.green, fontSize: 12)),
               ],
             ),
           ],
@@ -188,7 +188,7 @@ class _DoubtSolverScreenState extends State<DoubtSolverScreen> {
                     controller: _controller,
                     enabled: !_isLoading,
                     decoration: InputDecoration(
-                      hintText: "Ask a doubt...",
+                      hintText: "Ask your question...",
                       hintStyle: TextStyle(color: Colors.grey[400]),
                       filled: true,
                       fillColor: const Color(0xFFF5F7FA),

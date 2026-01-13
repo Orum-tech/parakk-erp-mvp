@@ -1,5 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'role_selection_screen.dart'; // Logout logic
+import '../models/student_model.dart';
+import '../models/timetable_model.dart';
+import '../models/homework_model.dart';
+import '../services/timetable_service.dart';
+import '../services/homework_service.dart';
+import '../services/attendance_service.dart';
+import '../services/auth_service.dart';
 
 // ==========================================================
 //                 1. IMPORTS: CORE SCREENS
@@ -31,6 +40,7 @@ import 'student_features/video_lessons_screen.dart';
 import 'student_features/practice_tests_screen.dart';
 import 'student_features/doubt_solver_screen.dart';
 import 'student_features/saved_resources_screen.dart';
+import 'student_features/ai_tutor_screen.dart';
 
 // ==========================================================
 //                 4. IMPORTS: CONNECT (TEACHER CHAT)
@@ -61,8 +71,229 @@ class _StudentDashboardState extends State<StudentDashboard> {
   final Color kBackgroundColor = const Color(0xFFF8FAFC); // Slate 50 (Very Light Grey)
   final Color kCardColor = Colors.white;
 
+  // Services
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final TimetableService _timetableService = TimetableService();
+  final HomeworkService _homeworkService = HomeworkService();
+  final AttendanceService _attendanceService = AttendanceService();
+  final AuthService _authService = AuthService();
+
+  // Data state
+  StudentModel? _student;
+  TimetableModel? _nextClass;
+  int _pendingHomeworkCount = 0;
+  Map<String, dynamic>? _attendanceStats;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadDashboardData();
+  }
+
+  Future<void> _loadDashboardData() async {
+    setState(() => _isLoading = true);
+    try {
+      final user = _auth.currentUser;
+      if (user == null) {
+        setState(() => _isLoading = false);
+        return;
+      }
+
+      // Load student data
+      final studentDoc = await _firestore.collection('users').doc(user.uid).get();
+      if (studentDoc.exists) {
+        setState(() {
+          _student = StudentModel.fromDocument(studentDoc);
+        });
+      }
+
+      // Load next class
+      if (_student?.classId != null) {
+        await _loadNextClass();
+        await _loadHomeworkCount();
+        await _loadAttendanceStats();
+      }
+    } catch (e) {
+      debugPrint('Error loading dashboard data: $e');
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _loadNextClass() async {
+    if (_student?.classId == null) return;
+    try {
+      final now = DateTime.now();
+      final currentDay = _getDayOfWeek(now.weekday);
+      final currentDateTime = DateTime(now.year, now.month, now.day, now.hour, now.minute);
+
+      // Get class timetable
+      final timetable = await _timetableService.getClassTimetable(_student!.classId!).first;
+      
+      // Find next class today or in the next 7 days
+      TimetableModel? nextClass;
+      DateTime? nextClassDateTime;
+
+      // Check today's remaining classes
+      for (var entry in timetable) {
+        if (entry.day == currentDay && !entry.isBreak) {
+          final entryDateTime = DateTime(
+            now.year, 
+            now.month, 
+            now.day, 
+            entry.startTime.hour, 
+            entry.startTime.minute
+          );
+          
+          if (entryDateTime.isAfter(currentDateTime)) {
+            if (nextClassDateTime == null || entryDateTime.isBefore(nextClassDateTime)) {
+              nextClass = entry;
+              nextClassDateTime = entryDateTime;
+            }
+          }
+        }
+      }
+
+      // If no class today, check next 7 days
+      if (nextClass == null) {
+        for (int dayOffset = 1; dayOffset <= 7; dayOffset++) {
+          final checkDate = now.add(Duration(days: dayOffset));
+          final checkDay = _getDayOfWeek(checkDate.weekday);
+          
+          for (var entry in timetable) {
+            if (entry.day == checkDay && !entry.isBreak) {
+              final entryDateTime = DateTime(
+                checkDate.year, 
+                checkDate.month, 
+                checkDate.day, 
+                entry.startTime.hour, 
+                entry.startTime.minute
+              );
+              
+              if (nextClassDateTime == null || entryDateTime.isBefore(nextClassDateTime)) {
+                nextClass = entry;
+                nextClassDateTime = entryDateTime;
+              }
+            }
+          }
+          
+          if (nextClass != null) break;
+        }
+      }
+
+      setState(() {
+        _nextClass = nextClass;
+      });
+    } catch (e) {
+      debugPrint('Error loading next class: $e');
+    }
+  }
+
+  DayOfWeek _getDayOfWeek(int weekday) {
+    switch (weekday) {
+      case 1: return DayOfWeek.monday;
+      case 2: return DayOfWeek.tuesday;
+      case 3: return DayOfWeek.wednesday;
+      case 4: return DayOfWeek.thursday;
+      case 5: return DayOfWeek.friday;
+      case 6: return DayOfWeek.saturday;
+      case 7: return DayOfWeek.sunday;
+      default: return DayOfWeek.monday;
+    }
+  }
+
+  Future<void> _loadHomeworkCount() async {
+    if (_student?.classId == null) return;
+    try {
+      final homework = await _homeworkService.getStudentHomework(_student!.classId!).first;
+      final now = DateTime.now();
+      
+      // Count pending homework (not submitted and due date in future)
+      final pending = homework.where((hw) {
+        return hw.dueDate.isAfter(now);
+      }).length;
+      
+      setState(() {
+        _pendingHomeworkCount = pending;
+      });
+    } catch (e) {
+      debugPrint('Error loading homework count: $e');
+    }
+  }
+
+  Future<void> _loadAttendanceStats() async {
+    if (_student?.uid == null) return;
+    try {
+      final stats = await _attendanceService.getStudentAttendanceStats(_student!.uid);
+      setState(() {
+        _attendanceStats = stats;
+      });
+    } catch (e) {
+      debugPrint('Error loading attendance stats: $e');
+    }
+  }
+
+  String _formatTimeUntil(DateTime targetTime) {
+    final now = DateTime.now();
+    final targetDateTime = DateTime(
+      targetTime.year,
+      targetTime.month,
+      targetTime.day,
+      targetTime.hour,
+      targetTime.minute,
+    );
+    final currentDateTime = DateTime(
+      now.year,
+      now.month,
+      now.day,
+      now.hour,
+      now.minute,
+    );
+    
+    final difference = targetDateTime.difference(currentDateTime);
+    
+    if (difference.isNegative) {
+      return 'Started';
+    }
+    
+    if (difference.inDays > 0) {
+      return '${difference.inDays} day${difference.inDays > 1 ? 's' : ''}';
+    }
+    
+    if (difference.inHours > 0) {
+      return '${difference.inHours} hour${difference.inHours > 1 ? 's' : ''}';
+    }
+    
+    if (difference.inMinutes > 0) {
+      return '${difference.inMinutes} min${difference.inMinutes > 1 ? 's' : ''}';
+    }
+    
+    return 'Starting soon';
+  }
+
+  String _getClassName() {
+    if (_student?.className != null && _student?.section != null) {
+      return '${_student!.className}-${_student!.section}';
+    } else if (_student?.classId != null) {
+      final parts = _student!.classId!.replaceFirst('class_', '').split('_');
+      if (parts.length == 2) {
+        return 'Class ${parts[0]}-${parts[1]}';
+      }
+    }
+    return 'Class';
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return Scaffold(
+        backgroundColor: kBackgroundColor,
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
     return Scaffold(
       backgroundColor: kBackgroundColor,
       extendBody: true, // Navbar floats over content
@@ -107,9 +338,9 @@ class _StudentDashboardState extends State<StudentDashboard> {
                     fontWeight: FontWeight.w500
                   ),
                 ),
-                const Text(
-                  "Aryan Sharma",
-                  style: TextStyle(
+                Text(
+                  _student?.name ?? 'Student',
+                  style: const TextStyle(
                     color: Colors.black87,
                     fontWeight: FontWeight.w800,
                     fontSize: 18
@@ -224,70 +455,115 @@ class _StudentDashboardState extends State<StudentDashboard> {
   //                  TAB 1: HOME DASHBOARD
   // ==========================================================
   Widget _buildHomeTab() {
-    return SingleChildScrollView(
-      physics: const BouncingScrollPhysics(),
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-      child: Column(
+    return RefreshIndicator(
+      onRefresh: _loadDashboardData,
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+        child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           
           // --- 1. NEXT CLASS ALERT ---
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(20),
-              border: Border(left: BorderSide(color: kPrimaryColor, width: 5)),
-              boxShadow: [
-                BoxShadow(color: Colors.grey.withOpacity(0.05), blurRadius: 15)
-              ],
-            ),
-            child: Row(
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      "UPCOMING CLASS",
-                      style: TextStyle(
-                        color: Colors.grey[500],
-                        fontSize: 10,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 1.2
-                      )
+          if (_nextClass != null)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                border: Border(left: BorderSide(color: kPrimaryColor, width: 5)),
+                boxShadow: [
+                  BoxShadow(color: Colors.grey.withOpacity(0.05), blurRadius: 15)
+                ],
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "UPCOMING CLASS",
+                          style: TextStyle(
+                            color: Colors.grey[500],
+                            fontSize: 10,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 1.2
+                          )
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          "${_nextClass!.subjectName} (${_nextClass!.className})",
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w800,
+                            fontSize: 16,
+                            color: Colors.black87
+                          )
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          "${_formatTimeUntil(_nextClass!.startTime)}${_nextClass!.room != null ? ' • Room ${_nextClass!.room}' : ''}",
+                          style: TextStyle(
+                            color: kPrimaryColor,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600
+                          )
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 6),
-                    const Text(
-                      "Physics (Chapter 4)",
-                      style: TextStyle(
-                        fontWeight: FontWeight.w800,
-                        fontSize: 16,
-                        color: Colors.black87
-                      )
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      "Starts in 10 mins • Room 302",
-                      style: TextStyle(
-                        color: kPrimaryColor,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600
-                      )
-                    ),
-                  ],
-                ),
-                const Spacer(),
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: kPrimaryColor.withOpacity(0.08),
-                    shape: BoxShape.circle
                   ),
-                  child: Icon(Icons.videocam_rounded, size: 22, color: kPrimaryColor),
-                )
-              ],
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: kPrimaryColor.withOpacity(0.08),
+                      shape: BoxShape.circle
+                    ),
+                    child: Icon(Icons.videocam_rounded, size: 22, color: kPrimaryColor),
+                  )
+                ],
+              ),
+            )
+          else if (_student?.classId != null)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                border: Border(left: BorderSide(color: Colors.grey[300]!, width: 5)),
+                boxShadow: [
+                  BoxShadow(color: Colors.grey.withOpacity(0.05), blurRadius: 15)
+                ],
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "NO UPCOMING CLASS",
+                          style: TextStyle(
+                            color: Colors.grey[500],
+                            fontSize: 10,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 1.2
+                          )
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          "No classes scheduled",
+                          style: TextStyle(
+                            fontWeight: FontWeight.w800,
+                            fontSize: 16,
+                            color: Colors.grey[600]
+                          )
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
           
           const SizedBox(height: 25),
 
@@ -391,7 +667,7 @@ class _StudentDashboardState extends State<StudentDashboard> {
               physics: const BouncingScrollPhysics(),
               children: [
                 _buildQuickAction(
-                  "Homework", "2 Due", Icons.edit_document, Colors.orange,
+                  "Homework", "${_pendingHomeworkCount} Due", Icons.edit_document, Colors.orange,
                   () => Navigator.push(context, MaterialPageRoute(builder: (c) => const HomeworkScreen()))
                 ),
                 _buildQuickAction(
@@ -472,6 +748,7 @@ class _StudentDashboardState extends State<StudentDashboard> {
           const SizedBox(height: 100),
         ],
       ),
+      ),
     );
   }
 
@@ -531,45 +808,48 @@ class _StudentDashboardState extends State<StudentDashboard> {
           const SizedBox(height: 20),
           
           // --- AI TUTOR CARD ---
-          Container(
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(colors: [Colors.indigo, Colors.indigo.shade800]),
-              borderRadius: BorderRadius.circular(24),
-              boxShadow: [
-                BoxShadow(color: Colors.indigo.withOpacity(0.3), blurRadius: 20, offset: const Offset(0, 8))
-              ],
-            ),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(16)),
-                  child: const Icon(Icons.smart_toy_rounded, color: Colors.white, size: 30),
-                ),
-                const SizedBox(width: 20),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        "Ask AI Tutor",
-                        style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        "24/7 Academic Assistance",
-                        style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 12)
-                      ),
-                    ],
+          GestureDetector(
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (c) => const AITutorScreen())),
+            child: Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(colors: [Colors.indigo, Colors.indigo.shade800]),
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: [
+                  BoxShadow(color: Colors.indigo.withOpacity(0.3), blurRadius: 20, offset: const Offset(0, 8))
+                ],
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(16)),
+                    child: const Icon(Icons.smart_toy_rounded, color: Colors.white, size: 30),
                   ),
-                ),
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle),
-                  child: const Icon(Icons.arrow_forward_rounded, color: Colors.indigo, size: 20),
-                )
-              ],
+                  const SizedBox(width: 20),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          "Ask AI Tutor",
+                          style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          "24/7 Academic Assistance",
+                          style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 12)
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+                    child: const Icon(Icons.arrow_forward_rounded, color: Colors.indigo, size: 20),
+                  )
+                ],
+              ),
             ),
           ),
           
@@ -662,12 +942,12 @@ class _StudentDashboardState extends State<StudentDashboard> {
                   ),
                 ),
                 const SizedBox(height: 15),
-                const Text(
-                  "Aryan Sharma",
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800)
+                Text(
+                  _student?.name ?? 'Student',
+                  style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800)
                 ),
                 Text(
-                  "Class 10-A • Roll No. 24",
+                  "${_getClassName()}${_student?.rollNumber != null ? ' • Roll No. ${_student!.rollNumber}' : ''}",
                   style: TextStyle(color: Colors.grey[500], fontSize: 14, fontWeight: FontWeight.w500)
                 ),
               ],
@@ -705,9 +985,16 @@ class _StudentDashboardState extends State<StudentDashboard> {
                   actions: [
                     TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Cancel")),
                     ElevatedButton(
-                      onPressed: () {
+                      onPressed: () async {
                         Navigator.pop(ctx);
-                        Navigator.pushReplacement(context, MaterialPageRoute(builder: (c) => const RoleSelectionScreen()));
+                        await _authService.logout();
+                        if (mounted) {
+                          Navigator.pushAndRemoveUntil(
+                            context,
+                            MaterialPageRoute(builder: (c) => const RoleSelectionScreen()),
+                            (route) => false,
+                          );
+                        }
                       },
                       style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
                       child: const Text("Logout"),

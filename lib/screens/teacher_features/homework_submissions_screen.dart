@@ -622,10 +622,10 @@ class _HomeworkSubmissionsScreenState extends State<HomeworkSubmissionsScreen> {
   }
 
   void _showGradeDialog(HomeworkSubmissionModel submission) {
-    final _marksController = TextEditingController();
-    final _maxMarksController = TextEditingController(text: '100');
-    final _feedbackController = TextEditingController();
-    final _formKey = GlobalKey<FormState>();
+    final marksController = TextEditingController();
+    final maxMarksController = TextEditingController(text: '100');
+    final feedbackController = TextEditingController();
+    final formKey = GlobalKey<FormState>();
 
     showDialog(
       context: context,
@@ -633,7 +633,7 @@ class _HomeworkSubmissionsScreenState extends State<HomeworkSubmissionsScreen> {
         title: const Text('Grade Submission'),
         content: SingleChildScrollView(
           child: Form(
-            key: _formKey,
+            key: formKey,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -644,7 +644,7 @@ class _HomeworkSubmissionsScreenState extends State<HomeworkSubmissionsScreen> {
                 ),
                 const SizedBox(height: 20),
                 TextFormField(
-                  controller: _marksController,
+                  controller: marksController,
                   decoration: const InputDecoration(
                     labelText: 'Marks Obtained',
                     border: OutlineInputBorder(),
@@ -663,7 +663,7 @@ class _HomeworkSubmissionsScreenState extends State<HomeworkSubmissionsScreen> {
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
-                  controller: _maxMarksController,
+                  controller: maxMarksController,
                   decoration: const InputDecoration(
                     labelText: 'Maximum Marks',
                     border: OutlineInputBorder(),
@@ -682,7 +682,7 @@ class _HomeworkSubmissionsScreenState extends State<HomeworkSubmissionsScreen> {
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
-                  controller: _feedbackController,
+                  controller: feedbackController,
                   decoration: const InputDecoration(
                     labelText: 'Feedback (Optional)',
                     border: OutlineInputBorder(),
@@ -700,13 +700,13 @@ class _HomeworkSubmissionsScreenState extends State<HomeworkSubmissionsScreen> {
           ),
           ElevatedButton(
             onPressed: () async {
-              if (_formKey.currentState!.validate()) {
+              if (formKey.currentState!.validate()) {
                 try {
                   await _homeworkService.gradeSubmission(
                     submissionId: submission.submissionId,
-                    marksObtained: int.parse(_marksController.text),
-                    maxMarks: int.parse(_maxMarksController.text),
-                    feedback: _feedbackController.text.isEmpty ? null : _feedbackController.text,
+                    marksObtained: int.parse(marksController.text),
+                    maxMarks: int.parse(maxMarksController.text),
+                    feedback: feedbackController.text.isEmpty ? null : feedbackController.text,
                   );
                   if (mounted) {
                     Navigator.pop(context);
