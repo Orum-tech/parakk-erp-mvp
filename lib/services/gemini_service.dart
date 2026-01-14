@@ -1,12 +1,10 @@
 import 'dart:convert';
-import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 class GeminiService {
   static const String _apiKey = 'AIzaSyANrQENk_ta2CyhcPsbB4fz2vP77glrs2g';
   
   // Use gemini-2.5-flash directly
-  // Format: https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={apiKey}
   String get _baseUrl => 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=$_apiKey';
 
   // Get response from Gemini API

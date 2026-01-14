@@ -1,13 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:intl/intl.dart';
 import 'placeholder_screen.dart'; // Ensure this file exists
 import 'login_screen.dart'; // Ensure this file exists
 import '../models/teacher_model.dart';
-import '../models/student_model.dart';
 import '../models/timetable_model.dart';
-import '../models/homework_model.dart';
 import '../models/attendance_model.dart';
 import '../services/attendance_service.dart';
 import '../services/timetable_service.dart';

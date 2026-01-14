@@ -4,7 +4,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'role_selection_screen.dart'; // Logout logic
 import '../models/student_model.dart';
 import '../models/timetable_model.dart';
-import '../models/homework_model.dart';
 import '../services/timetable_service.dart';
 import '../services/homework_service.dart';
 import '../services/attendance_service.dart';
@@ -667,7 +666,7 @@ class _StudentDashboardState extends State<StudentDashboard> {
               physics: const BouncingScrollPhysics(),
               children: [
                 _buildQuickAction(
-                  "Homework", "${_pendingHomeworkCount} Due", Icons.edit_document, Colors.orange,
+                  "Homework", "$_pendingHomeworkCount Due", Icons.edit_document, Colors.orange,
                   () => Navigator.push(context, MaterialPageRoute(builder: (c) => const HomeworkScreen()))
                 ),
                 _buildQuickAction(
