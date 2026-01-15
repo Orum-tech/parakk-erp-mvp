@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../screens/forgot_password_screen.dart';
 
 class HelpCenterScreen extends StatelessWidget {
   const HelpCenterScreen({super.key});
@@ -28,7 +29,7 @@ class HelpCenterScreen extends StatelessWidget {
           const SizedBox(height: 20),
           const Text("FAQs", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
           const SizedBox(height: 10),
-          const ExpansionTile(title: Text("How to reset password?"), children: [Padding(padding: EdgeInsets.all(15.0), child: Text("Go to login screen and click 'Forgot Password'."))]),
+          _buildPasswordResetFaq(context),
           const ExpansionTile(title: Text("How to contact teacher?"), children: [Padding(padding: EdgeInsets.all(15.0), child: Text("Use the 'Chat' tab to message your class teacher directly."))]),
         ],
       ),
@@ -55,6 +56,55 @@ class HelpCenterScreen extends StatelessWidget {
         title: Text(title),
         content: Text(content),
         actions: [TextButton(onPressed: () => Navigator.pop(c), child: const Text("OK"))],
+      ),
+    );
+  }
+
+  Widget _buildPasswordResetFaq(BuildContext context) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 10),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      elevation: 0,
+      child: ExpansionTile(
+        title: const Text("How to reset password?", style: TextStyle(fontWeight: FontWeight.w600)),
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  "You can reset your password by clicking the button below. We'll send you a reset link to your email.",
+                  style: TextStyle(color: Colors.grey),
+                ),
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const ForgotPasswordScreen(),
+                        ),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF1565C0),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    child: const Text(
+                      "Reset Password",
+                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

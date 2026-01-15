@@ -75,6 +75,19 @@ class AuthService {
     await _auth.signOut();
   }
 
+  // Reset password
+  Future<void> resetPassword(String email) async {
+    try {
+      await _auth.sendPasswordResetEmail(
+        email: email.trim().toLowerCase(),
+      );
+    } on FirebaseAuthException catch (e) {
+      throw _handleAuthException(e);
+    } catch (e) {
+      throw Exception('An unexpected error occurred: $e');
+    }
+  }
+
   // Get current user
   User? getCurrentUser() {
     return _auth.currentUser;
