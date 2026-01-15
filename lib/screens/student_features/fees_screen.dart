@@ -13,55 +13,117 @@ class FeesScreen extends StatelessWidget {
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.black),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          children: [
-            // 1. Total Due Card (Hero Section)
-            Container(
-              padding: const EdgeInsets.all(25),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(colors: [Color(0xFF6A1B9A), Color(0xFFAB47BC)]),
-                borderRadius: BorderRadius.circular(24),
-                boxShadow: [BoxShadow(color: Colors.purple.withOpacity(0.3), blurRadius: 20, offset: const Offset(0, 10))],
-              ),
-              child: Column(
-                children: [
-                  const Text("Total Outstanding", style: TextStyle(color: Colors.white70, fontSize: 14)),
-                  const SizedBox(height: 10),
-                  const Text("₹ 12,500", style: TextStyle(color: Colors.white, fontSize: 36, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 20),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 50,
-                    child: ElevatedButton(
-                      onPressed: () {},
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        foregroundColor: Colors.purple,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                      ),
-                      child: const Text("PAY NOW", style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1)),
-                    ),
+      body: Stack(
+        children: [
+          // Existing UI content
+          SingleChildScrollView(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              children: [
+                // 1. Total Due Card (Hero Section)
+                Container(
+                  padding: const EdgeInsets.all(25),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(colors: [Color(0xFF6A1B9A), Color(0xFFAB47BC)]),
+                    borderRadius: BorderRadius.circular(24),
+                    boxShadow: [BoxShadow(color: Colors.purple.withOpacity(0.3), blurRadius: 20, offset: const Offset(0, 10))],
                   ),
-                  const SizedBox(height: 15),
-                  const Text("Due Date: 30 Oct 2023", style: TextStyle(color: Colors.white60, fontSize: 12)),
-                ],
+                  child: Column(
+                    children: [
+                      const Text("Total Outstanding", style: TextStyle(color: Colors.white70, fontSize: 14)),
+                      const SizedBox(height: 10),
+                      const Text("₹ 12,500", style: TextStyle(color: Colors.white, fontSize: 36, fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 20),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 50,
+                        child: ElevatedButton(
+                          onPressed: () {},
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.white,
+                            foregroundColor: Colors.purple,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                          ),
+                          child: const Text("PAY NOW", style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1)),
+                        ),
+                      ),
+                      const SizedBox(height: 15),
+                      const Text("Due Date: 30 Oct 2023", style: TextStyle(color: Colors.white60, fontSize: 12)),
+                    ],
+                  ),
+                ),
+                
+                const SizedBox(height: 30),
+
+                // 2. Transaction History
+                const Align(alignment: Alignment.centerLeft, child: Text("Payment History", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold))),
+                const SizedBox(height: 15),
+                
+                _buildTransactionTile("Tuition Fee (Q2)", "Paid via UPI", "₹ 15,000", "20 Aug", Colors.green),
+                _buildTransactionTile("Bus Fee (Q2)", "Paid via Card", "₹ 4,500", "20 Aug", Colors.green),
+                _buildTransactionTile("Exam Fee", "Pending", "₹ 500", "Due", Colors.orange),
+                _buildTransactionTile("Tuition Fee (Q1)", "Paid via Cash", "₹ 15,000", "10 Apr", Colors.green),
+              ],
+            ),
+          ),
+          // Coming Soon Overlay
+          Container(
+            color: Colors.black.withOpacity(0.5),
+            child: Center(
+              child: Container(
+                margin: const EdgeInsets.all(40),
+                padding: const EdgeInsets.all(30),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(24),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.2),
+                      blurRadius: 20,
+                      offset: const Offset(0, 10),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: Colors.deepPurple.withOpacity(0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.payment_rounded,
+                        size: 48,
+                        color: Colors.deepPurple,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    const Text(
+                      "Coming Soon",
+                      style: TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      "The Pay Fees feature is under development and will be available soon!",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey[600],
+                        height: 1.5,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-            
-            const SizedBox(height: 30),
-
-            // 2. Transaction History
-            const Align(alignment: Alignment.centerLeft, child: Text("Payment History", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold))),
-            const SizedBox(height: 15),
-            
-            _buildTransactionTile("Tuition Fee (Q2)", "Paid via UPI", "₹ 15,000", "20 Aug", Colors.green),
-            _buildTransactionTile("Bus Fee (Q2)", "Paid via Card", "₹ 4,500", "20 Aug", Colors.green),
-            _buildTransactionTile("Exam Fee", "Pending", "₹ 500", "Due", Colors.orange),
-            _buildTransactionTile("Tuition Fee (Q1)", "Paid via Cash", "₹ 15,000", "10 Apr", Colors.green),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../models/teacher_model.dart';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
@@ -8,14 +11,174 @@ class EditProfileScreen extends StatefulWidget {
 }
 
 class _EditProfileScreenState extends State<EditProfileScreen> {
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+  TeacherModel? _teacher;
+  bool _isLoading = true;
+  bool _isSaving = false;
+
   // Controllers for inputs
-  final TextEditingController _nameController = TextEditingController(text: "Mrs. Radhika Gupta");
-  final TextEditingController _phoneController = TextEditingController(text: "+91 98765 43210");
-  final TextEditingController _emailController = TextEditingController(text: "radhika.g@parakk.edu");
-  final TextEditingController _bioController = TextEditingController(text: "Mathematics Teacher | Class 10-A Class Teacher | 8 Years Experience");
+  final TextEditingController _phoneController = TextEditingController();
+  final TextEditingController _addressController = TextEditingController();
+  final TextEditingController _qualificationController = TextEditingController();
+  final TextEditingController _specializationController = TextEditingController();
+  final TextEditingController _yearsOfExperienceController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTeacherData();
+  }
+
+  @override
+  void dispose() {
+    _phoneController.dispose();
+    _addressController.dispose();
+    _qualificationController.dispose();
+    _specializationController.dispose();
+    _yearsOfExperienceController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadTeacherData() async {
+    setState(() => _isLoading = true);
+    try {
+      final user = _auth.currentUser;
+      if (user == null) {
+        setState(() => _isLoading = false);
+        return;
+      }
+
+      final teacherDoc = await _firestore.collection('users').doc(user.uid).get();
+      if (teacherDoc.exists) {
+        final teacher = TeacherModel.fromDocument(teacherDoc);
+        setState(() {
+          _teacher = teacher;
+          _phoneController.text = teacher.phoneNumber ?? '';
+          _addressController.text = teacher.address ?? '';
+          _qualificationController.text = teacher.qualification ?? '';
+          _specializationController.text = teacher.specialization ?? '';
+          _yearsOfExperienceController.text = teacher.yearsOfExperience?.toString() ?? '';
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error loading profile: $e'), backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _saveProfile() async {
+    if (_teacher == null) return;
+
+    setState(() => _isSaving = true);
+    try {
+      final user = _auth.currentUser;
+      if (user == null) {
+        throw Exception('User not authenticated');
+      }
+
+      // Update teacher data in Firestore
+      final updateData = <String, dynamic>{};
+      
+      if (_phoneController.text.trim().isNotEmpty) {
+        updateData['phoneNumber'] = _phoneController.text.trim();
+      } else {
+        updateData['phoneNumber'] = null;
+      }
+
+      if (_addressController.text.trim().isNotEmpty) {
+        updateData['address'] = _addressController.text.trim();
+      } else {
+        updateData['address'] = null;
+      }
+
+      if (_qualificationController.text.trim().isNotEmpty) {
+        updateData['qualification'] = _qualificationController.text.trim();
+      } else {
+        updateData['qualification'] = null;
+      }
+
+      if (_specializationController.text.trim().isNotEmpty) {
+        updateData['specialization'] = _specializationController.text.trim();
+      } else {
+        updateData['specialization'] = null;
+      }
+
+      if (_yearsOfExperienceController.text.trim().isNotEmpty) {
+        final years = int.tryParse(_yearsOfExperienceController.text.trim());
+        if (years != null && years >= 0) {
+          updateData['yearsOfExperience'] = years;
+        }
+      } else {
+        updateData['yearsOfExperience'] = null;
+      }
+
+      await _firestore.collection('users').doc(user.uid).update(updateData);
+
+      // Reload teacher data
+      await _loadTeacherData();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Profile Updated Successfully! ✅"),
+            backgroundColor: Colors.green,
+          ),
+        );
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error updating profile: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      setState(() => _isSaving = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return Scaffold(
+        backgroundColor: Colors.white,
+        appBar: AppBar(
+          title: const Text("Edit Profile", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+          backgroundColor: Colors.white,
+          elevation: 0,
+          iconTheme: const IconThemeData(color: Colors.black),
+        ),
+        body: const Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
+    if (_teacher == null) {
+      return Scaffold(
+        backgroundColor: Colors.white,
+        appBar: AppBar(
+          title: const Text("Edit Profile", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+          backgroundColor: Colors.white,
+          elevation: 0,
+          iconTheme: const IconThemeData(color: Colors.black),
+        ),
+        body: const Center(
+          child: Text('Teacher data not found'),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -25,14 +188,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         iconTheme: const IconThemeData(color: Colors.black),
         actions: [
           TextButton(
-            onPressed: () {
-              // Simulate Save
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text("Profile Updated Successfully! ✅"), backgroundColor: Colors.green),
-              );
-              Navigator.pop(context);
-            },
-            child: const Text("SAVE", style: TextStyle(color: Color(0xFF00897B), fontWeight: FontWeight.bold)),
+            onPressed: _isSaving ? null : _saveProfile,
+            child: _isSaving
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Text("SAVE", style: TextStyle(color: Color(0xFF00897B), fontWeight: FontWeight.bold)),
           )
         ],
       ),
@@ -44,9 +207,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             Center(
               child: Stack(
                 children: [
-                  const CircleAvatar(
+                  CircleAvatar(
                     radius: 50,
-                    backgroundImage: NetworkImage('https://i.pravatar.cc/150?img=5'),
+                    backgroundColor: const Color(0xFF00897B).withOpacity(0.1),
+                    child: Icon(Icons.person, size: 50, color: const Color(0xFF00897B)),
                   ),
                   Positioned(
                     bottom: 0,
@@ -62,17 +226,39 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             ),
             const SizedBox(height: 30),
 
+            // Name - Read Only
             _buildLabel("Full Name"),
-            _buildTextField(_nameController, Icons.person_outline),
+            _buildReadOnlyField(_teacher!.name, Icons.person_outline),
             
-            _buildLabel("Mobile Number"),
-            _buildTextField(_phoneController, Icons.phone_android_rounded),
-            
+            // Email - Read Only
             _buildLabel("Email ID"),
-            _buildTextField(_emailController, Icons.email_outlined),
+            _buildReadOnlyField(_teacher!.email, Icons.email_outlined),
             
-            _buildLabel("Professional Bio"),
-            _buildTextField(_bioController, Icons.info_outline, maxLines: 3),
+            // Employee ID - Read Only (if exists)
+            if (_teacher!.employeeId != null) ...[
+              _buildLabel("Employee ID"),
+              _buildReadOnlyField(_teacher!.employeeId!, Icons.badge_outlined),
+            ],
+            
+            // Phone Number - Editable
+            _buildLabel("Mobile Number"),
+            _buildTextField(_phoneController, Icons.phone_android_rounded, TextInputType.phone),
+            
+            // Address - Editable
+            _buildLabel("Address"),
+            _buildTextField(_addressController, Icons.location_on, TextInputType.streetAddress, maxLines: 2),
+            
+            // Qualification - Editable
+            _buildLabel("Qualification"),
+            _buildTextField(_qualificationController, Icons.school_outlined, TextInputType.text),
+            
+            // Specialization - Editable
+            _buildLabel("Specialization"),
+            _buildTextField(_specializationController, Icons.workspace_premium_outlined, TextInputType.text),
+            
+            // Years of Experience - Editable
+            _buildLabel("Years of Experience"),
+            _buildTextField(_yearsOfExperienceController, Icons.calendar_today_outlined, TextInputType.number),
           ],
         ),
       ),
@@ -89,15 +275,38 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     );
   }
 
-  Widget _buildTextField(TextEditingController controller, IconData icon, {int maxLines = 1}) {
+  Widget _buildTextField(TextEditingController controller, IconData icon, TextInputType keyboardType, {int maxLines = 1}) {
     return TextField(
       controller: controller,
       maxLines: maxLines,
+      keyboardType: keyboardType,
       decoration: InputDecoration(
         prefixIcon: Icon(icon, color: const Color(0xFF00897B)),
         filled: true,
         fillColor: const Color(0xFFF0F4F4),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+      ),
+    );
+  }
+
+  Widget _buildReadOnlyField(String value, IconData icon) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF0F4F4),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: const Color(0xFF00897B)),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(fontSize: 16, color: Colors.grey),
+            ),
+          ),
+        ],
       ),
     );
   }

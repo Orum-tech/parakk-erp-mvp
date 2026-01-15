@@ -59,9 +59,9 @@ class _HomeworkScreenState extends State<HomeworkScreen> {
           }
 
           return ListView.builder(
-            padding: const EdgeInsets.all(15),
+              padding: const EdgeInsets.all(15),
             itemCount: homeworkList.length,
-            itemBuilder: (context, index) {
+              itemBuilder: (context, index) {
               final hw = homeworkList[index];
               return _buildHomeworkCard(hw);
             },
@@ -77,9 +77,9 @@ class _HomeworkScreenState extends State<HomeworkScreen> {
     final submittedCount = hw.submittedCount ?? 0;
     final totalStudents = hw.totalStudents ?? 0;
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 15),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                return Card(
+                  margin: const EdgeInsets.only(bottom: 15),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: InkWell(
         onTap: () {
           Navigator.push(
@@ -90,29 +90,29 @@ class _HomeworkScreenState extends State<HomeworkScreen> {
           );
         },
         borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(15),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: Colors.blue.shade50,
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Text(
+                  child: Padding(
+                    padding: const EdgeInsets.all(15),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: Colors.blue.shade50,
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
                       hw.subjectName,
                       style: TextStyle(
                         color: Colors.blue.shade800,
                         fontWeight: FontWeight.bold,
                         fontSize: 12,
                       ),
-                    ),
-                  ),
+                              ),
+                            ),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
@@ -127,19 +127,19 @@ class _HomeworkScreenState extends State<HomeworkScreen> {
                         fontSize: 11,
                       ),
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10),
-              Text(
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
                 hw.title,
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-              ),
+                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                        ),
               const SizedBox(height: 5),
-              Text(
+                        Text(
                 hw.className,
-                style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
-              ),
+                          style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+                        ),
               const SizedBox(height: 8),
               Row(
                 children: [
@@ -164,14 +164,14 @@ class _HomeworkScreenState extends State<HomeworkScreen> {
                   overflow: TextOverflow.ellipsis,
                 ),
               ],
-              const SizedBox(height: 15),
-              // Submission Progress Bar
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
+                        const SizedBox(height: 15),
+                        // Submission Progress Bar
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
                       Text(
                         "Submissions",
                         style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
@@ -180,22 +180,22 @@ class _HomeworkScreenState extends State<HomeworkScreen> {
                         "$submittedCount${totalStudents > 0 ? '/$totalStudents' : ''}",
                         style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 5),
-                  LinearProgressIndicator(
+                              ],
+                            ),
+                            const SizedBox(height: 5),
+                            LinearProgressIndicator(
                     value: totalStudents > 0 ? submissionPercentage / 100 : 0,
-                    backgroundColor: Colors.grey.shade200,
-                    color: Colors.green,
-                    minHeight: 6,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ],
+                              backgroundColor: Colors.grey.shade200,
+                              color: Colors.green,
+                              minHeight: 6,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ],
               ),
-            ],
-          ),
-        ),
-      ),
+                      ],
+                    ),
+                  ),
+            ),
     );
   }
 }

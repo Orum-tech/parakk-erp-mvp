@@ -14,43 +14,105 @@ class LibraryScreen extends StatelessWidget {
         iconTheme: const IconThemeData(color: Colors.black),
         actions: [IconButton(onPressed: (){}, icon: const Icon(Icons.bookmark_border))],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text("Recommended for You", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 15),
-            SizedBox(
-              height: 220,
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                children: [
-                  _buildBookCover("Science Vol 1", "Class 10", Colors.blue),
-                  _buildBookCover("History World", "Class 10", Colors.brown),
-                  _buildBookCover("Maths Algebra", "Class 10", Colors.orange),
-                ],
+      body: Stack(
+        children: [
+          // Existing UI content
+          SingleChildScrollView(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text("Recommended for You", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 15),
+                SizedBox(
+                  height: 220,
+                  child: ListView(
+                    scrollDirection: Axis.horizontal,
+                    children: [
+                      _buildBookCover("Science Vol 1", "Class 10", Colors.blue),
+                      _buildBookCover("History World", "Class 10", Colors.brown),
+                      _buildBookCover("Maths Algebra", "Class 10", Colors.orange),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 30),
+                const Text("Categories", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 15),
+                GridView.count(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  crossAxisCount: 2,
+                  childAspectRatio: 2.5,
+                  crossAxisSpacing: 15,
+                  mainAxisSpacing: 15,
+                  children: [
+                    _buildCategory("Textbooks", Icons.menu_book),
+                    _buildCategory("Journals", Icons.article),
+                    _buildCategory("Exam Prep", Icons.assignment),
+                    _buildCategory("Fiction", Icons.auto_stories),
+                  ],
+                )
+              ],
+            ),
+          ),
+          // Coming Soon Overlay
+          Container(
+            color: Colors.black.withOpacity(0.5),
+            child: Center(
+              child: Container(
+                margin: const EdgeInsets.all(40),
+                padding: const EdgeInsets.all(30),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(24),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.2),
+                      blurRadius: 20,
+                      offset: const Offset(0, 10),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: Colors.brown.withOpacity(0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.local_library_rounded,
+                        size: 48,
+                        color: Colors.brown,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    const Text(
+                      "Coming Soon",
+                      style: TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      "The Library feature is under development and will be available soon!",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey[600],
+                        height: 1.5,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-            const SizedBox(height: 30),
-            const Text("Categories", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 15),
-            GridView.count(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              crossAxisCount: 2,
-              childAspectRatio: 2.5,
-              crossAxisSpacing: 15,
-              mainAxisSpacing: 15,
-              children: [
-                _buildCategory("Textbooks", Icons.menu_book),
-                _buildCategory("Journals", Icons.article),
-                _buildCategory("Exam Prep", Icons.assignment),
-                _buildCategory("Fiction", Icons.auto_stories),
-              ],
-            )
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

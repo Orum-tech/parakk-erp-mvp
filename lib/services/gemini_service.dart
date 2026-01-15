@@ -1,8 +1,10 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class GeminiService {
-  static const String _apiKey = 'AIzaSyANrQENk_ta2CyhcPsbB4fz2vP77glrs2g';
+  // Get API key from .env file
+  String get _apiKey => dotenv.env['GEMINI_API_KEY'] ?? '';
   
   // Use gemini-2.5-flash directly
   String get _baseUrl => 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=$_apiKey';
@@ -76,6 +78,6 @@ class GeminiService {
 
   // Check if API key is configured
   bool isApiKeyConfigured() {
-    return _apiKey != 'YOUR_GEMINI_API_KEY_HERE' && _apiKey.isNotEmpty;
+    return _apiKey.isNotEmpty;
   }
 }

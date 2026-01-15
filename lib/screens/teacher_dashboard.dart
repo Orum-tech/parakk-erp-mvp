@@ -40,6 +40,7 @@ import 'teacher_features/upload_notes_screen.dart';
 import 'teacher_features/behaviour_log_screen.dart';
 import 'teacher_features/class_analytics_screen.dart';
 import 'teacher_features/syllabus_tracker_screen.dart';
+import 'teacher_features/events_screen.dart';
 import 'teacher_features/class_reports_screen.dart';
 
 // ==========================================================
@@ -801,6 +802,12 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
                 Icons.description_rounded, 
                 Colors.redAccent, 
                 () => Navigator.push(context, MaterialPageRoute(builder: (c) => const ClassReportsScreen()))
+              ),
+              _buildGridTile(
+                "Events", 
+                Icons.event_available_rounded, 
+                Colors.pink, 
+                () => Navigator.push(context, MaterialPageRoute(builder: (c) => const EventsScreen()))
               ),
             ],
           ),
