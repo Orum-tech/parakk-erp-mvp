@@ -21,6 +21,7 @@ class _StudentOnboardingScreenState extends State<StudentOnboardingScreen> {
   final _emergencyContactController = TextEditingController();
   final _bloodGroupController = TextEditingController();
   final _parentNameController = TextEditingController();
+  final _parentEmailController = TextEditingController();
 
   // State variables
   String? _selectedClass; // 1-10
@@ -82,6 +83,9 @@ class _StudentOnboardingScreenState extends State<StudentOnboardingScreen> {
         parentName: _parentNameController.text.trim().isEmpty 
             ? null 
             : _parentNameController.text.trim(),
+        parentEmail: _parentEmailController.text.trim().isEmpty 
+            ? null 
+            : _parentEmailController.text.trim().toLowerCase(),
       );
 
       if (mounted) {
@@ -112,6 +116,7 @@ class _StudentOnboardingScreenState extends State<StudentOnboardingScreen> {
     _emergencyContactController.dispose();
     _bloodGroupController.dispose();
     _parentNameController.dispose();
+    _parentEmailController.dispose();
     super.dispose();
   }
 
@@ -241,6 +246,24 @@ class _StudentOnboardingScreenState extends State<StudentOnboardingScreen> {
                         controller: _parentNameController,
                         label: "Parent/Guardian Name",
                         icon: Icons.family_restroom_outlined,
+                      ),
+                      const SizedBox(height: 20),
+                      
+                      // Parent Email
+                      _buildTextField(
+                        controller: _parentEmailController,
+                        label: "Parent/Guardian Email",
+                        icon: Icons.email_outlined,
+                        keyboardType: TextInputType.emailAddress,
+                        validator: (value) {
+                          if (value != null && value.isNotEmpty) {
+                            final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+                            if (!emailRegex.hasMatch(value)) {
+                              return 'Please enter a valid email';
+                            }
+                          }
+                          return null;
+                        },
                       ),
                       const SizedBox(height: 40),
 

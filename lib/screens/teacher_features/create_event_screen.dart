@@ -22,7 +22,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
   DateTime? _startTime;
   DateTime? _endTime;
   EventCategory _selectedCategory = EventCategory.other;
-  List<String> _selectedClasses = [];
+  final List<String> _selectedClasses = [];
   bool _isAllStudents = false;
   
   bool _isLoading = false;

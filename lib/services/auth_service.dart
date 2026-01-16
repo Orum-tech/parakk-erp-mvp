@@ -34,6 +34,11 @@ class AuthService {
       // Save user to Firestore
       await _firestore.collection('users').doc(uid).set(userModel.toMap());
 
+      // If parent signs up, auto-link to students with matching parentEmail
+      if (role == UserRole.parent) {
+        await _linkParentToStudents(uid, email.trim().toLowerCase());
+      }
+
       return userModel;
     } on FirebaseAuthException catch (e) {
       throw _handleAuthException(e);
@@ -142,6 +147,59 @@ class AuthService {
       return 'Name must be at least 2 characters';
     }
     return null;
+  }
+
+  // Auto-link parent to students with matching email
+  Future<void> _linkParentToStudents(String parentId, String parentEmail) async {
+    try {
+      // Find all students with matching parentEmail
+      final studentsSnapshot = await _firestore
+          .collection('users')
+          .where('role', isEqualTo: 'Student')
+          .where('parentEmail', isEqualTo: parentEmail)
+          .get();
+
+      if (studentsSnapshot.docs.isEmpty) {
+        // Try lowercase 'student' as fallback
+        final fallbackSnapshot = await _firestore
+            .collection('users')
+            .where('role', isEqualTo: 'student')
+            .where('parentEmail', isEqualTo: parentEmail)
+            .get();
+
+        if (fallbackSnapshot.docs.isEmpty) return;
+
+        // Update all matching students
+        final batch = _firestore.batch();
+        final parentDoc = await _firestore.collection('users').doc(parentId).get();
+        final parentName = parentDoc.data()?['name'] ?? '';
+
+        for (var doc in fallbackSnapshot.docs) {
+          batch.update(doc.reference, {
+            'parentId': parentId,
+            'parentName': parentName,
+          });
+        }
+        await batch.commit();
+        return;
+      }
+
+      // Update all matching students
+      final batch = _firestore.batch();
+      final parentDoc = await _firestore.collection('users').doc(parentId).get();
+      final parentName = parentDoc.data()?['name'] ?? '';
+
+      for (var doc in studentsSnapshot.docs) {
+        batch.update(doc.reference, {
+          'parentId': parentId,
+          'parentName': parentName,
+        });
+      }
+      await batch.commit();
+    } catch (e) {
+      // Silently fail - linking is not critical for signup
+      print('Error linking parent to students: $e');
+    }
   }
 
   // Handle Firebase Auth exceptions

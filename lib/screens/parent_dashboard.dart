@@ -1,6 +1,23 @@
 import 'package:flutter/material.dart';
-import 'placeholder_screen.dart'; // Make sure this file exists
-import 'role_selection_screen.dart'; // Import for Logout redirection
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'role_selection_screen.dart';
+import '../models/student_model.dart';
+import '../models/user_model.dart';
+import '../services/parent_service.dart';
+import '../services/auth_service.dart';
+import 'parent_features/child_attendance_screen.dart';
+import 'parent_features/child_homework_screen.dart';
+import 'parent_features/child_results_screen.dart';
+import 'parent_features/child_fees_screen.dart';
+import 'parent_features/child_behaviour_screen.dart';
+import 'parent_features/notices_screen.dart';
+import 'parent_features/events_screen.dart';
+import 'parent_features/parent_profile_screen.dart';
+import 'parent_features/parent_ai_assistant_screen.dart';
+import 'parent_features/class_teacher_contact_screen.dart';
+import 'parent_features/admin_office_contact_screen.dart';
+import 'placeholder_screen.dart';
 
 class ParentDashboard extends StatefulWidget {
   const ParentDashboard({super.key});
@@ -18,11 +35,152 @@ class _ParentDashboardState extends State<ParentDashboard> {
   final Color kBackgroundColor = const Color(0xFFF8FAFC); // Slate 50 (Very Light Grey)
   final Color kCardColor = Colors.white;
 
+  // Services
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final ParentService _parentService = ParentService();
+  final AuthService _authService = AuthService();
+
+  // Data state
+  UserModel? _parent;
+  List<StudentModel> _children = [];
+  StudentModel? _selectedChild;
+  Map<String, dynamic>? _attendanceStats;
+  Map<String, dynamic>? _feeSummary;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadDashboardData();
+  }
+
+  Future<void> _loadDashboardData() async {
+    setState(() => _isLoading = true);
+    try {
+      final user = _auth.currentUser;
+      if (user == null) {
+        setState(() => _isLoading = false);
+        return;
+      }
+
+      // Get parent data
+      final parentData = await _authService.getCurrentUserWithData();
+      setState(() => _parent = parentData);
+
+      // Get children
+      final children = await _parentService.getChildren();
+      setState(() {
+        _children = children;
+        if (children.isNotEmpty && _selectedChild == null) {
+          _selectedChild = children.first;
+        }
+      });
+
+      // Load stats for selected child
+      if (_selectedChild != null) {
+        await _loadChildStats();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error loading data: $e'), backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _loadChildStats() async {
+    if (_selectedChild == null) return;
+
+    try {
+      final attendanceStats = await _parentService.getChildAttendanceStats(_selectedChild!.uid);
+      final feeSummary = await _parentService.getChildFeeSummary(_selectedChild!.uid);
+      
+      setState(() {
+        _attendanceStats = attendanceStats;
+        _feeSummary = feeSummary;
+      });
+    } catch (e) {
+      // Silently fail - stats are not critical
+      print('Error loading child stats: $e');
+    }
+  }
+
+  Future<void> _selectChild() async {
+    if (_children.isEmpty) return;
+
+    if (_children.length == 1) {
+      // Only one child, no need to show dialog
+      return;
+    }
+
+    final selected = await showDialog<StudentModel>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Select Child'),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: ListView.builder(
+            shrinkWrap: true,
+            itemCount: _children.length,
+            itemBuilder: (context, index) {
+              final child = _children[index];
+              return ListTile(
+                title: Text(child.name),
+                subtitle: Text('${child.className ?? 'N/A'} • Roll: ${child.rollNumber ?? 'N/A'}'),
+                onTap: () => Navigator.pop(context, child),
+              );
+            },
+          ),
+        ),
+      ),
+    );
+
+    if (selected != null) {
+      setState(() => _selectedChild = selected);
+      await _loadChildStats();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return Scaffold(
+        backgroundColor: kBackgroundColor,
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (_children.isEmpty) {
+      return Scaffold(
+        backgroundColor: kBackgroundColor,
+        appBar: AppBar(
+          title: const Text("Parent Portal", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+          backgroundColor: Colors.white,
+          elevation: 0,
+          iconTheme: const IconThemeData(color: Colors.black),
+        ),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.child_care_outlined, size: 64, color: Colors.grey[400]),
+              const SizedBox(height: 16),
+              const Text('No children linked to your account', style: TextStyle(color: Colors.grey, fontSize: 16)),
+              const SizedBox(height: 8),
+              const Text('Please contact the school to link your children', style: TextStyle(color: Colors.grey, fontSize: 12)),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: kBackgroundColor,
-      extendBody: true, // Navbar floats over content
+      extendBody: true,
       
       // --- 1. PREMIUM APP BAR ---
       appBar: AppBar(
@@ -43,9 +201,10 @@ class _ParentDashboardState extends State<ParentDashboard> {
                 shape: BoxShape.circle, 
                 border: Border.all(color: kPrimaryColor, width: 2),
               ),
-              child: const CircleAvatar(
-                radius: 20, 
-                backgroundImage: NetworkImage('https://i.pravatar.cc/150?img=8')
+              child: CircleAvatar(
+                radius: 20,
+                backgroundColor: kPrimaryColor.withOpacity(0.1),
+                child: Icon(Icons.person, color: kPrimaryColor, size: 20),
               ),
             ),
             const SizedBox(width: 12),
@@ -53,7 +212,10 @@ class _ParentDashboardState extends State<ParentDashboard> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text("Parent Portal", style: TextStyle(color: Colors.grey[600], fontSize: 11, fontWeight: FontWeight.w600)),
-                const Text("Mr. Sharma", style: TextStyle(color: Colors.black87, fontWeight: FontWeight.w800, fontSize: 18)),
+                Text(
+                  _parent?.name ?? 'Parent',
+                  style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.w800, fontSize: 18),
+                ),
               ],
             ),
           ],
@@ -68,7 +230,10 @@ class _ParentDashboardState extends State<ParentDashboard> {
             ),
             child: IconButton(
               icon: Icon(Icons.notifications_outlined, color: Colors.grey[800], size: 24),
-              onPressed: () => _openPlaceholder(context, "Notifications", Icons.notifications),
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (c) => const NoticesScreen()),
+              ),
             ),
           ),
         ],
@@ -132,122 +297,181 @@ class _ParentDashboardState extends State<ParentDashboard> {
 
   // ==================== TAB 1: HOME ====================
   Widget _buildHomeTab() {
+    if (_selectedChild == null) {
+      return const Center(child: Text('No child selected'));
+    }
+
+    final attendancePercentage = _attendanceStats?['percentage'] ?? 0.0;
+    final totalDue = _feeSummary?['totalDue'] ?? 0.0;
+
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 1. Child Selector Pill (Modern)
+          // 1. Child Selector Pill
           Center(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(30),
-                border: Border.all(color: Colors.grey.withOpacity(0.1)),
-                boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))],
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  CircleAvatar(radius: 8, backgroundColor: Colors.green, child: const Icon(Icons.check, size: 10, color: Colors.white)),
-                  const SizedBox(width: 8),
-                  Text("Aryan Sharma (10-A)", style: TextStyle(fontWeight: FontWeight.w700, color: Colors.grey[800], fontSize: 13)),
-                  const SizedBox(width: 8),
-                  Icon(Icons.keyboard_arrow_down_rounded, color: Colors.grey[400], size: 20),
-                ],
+            child: GestureDetector(
+              onTap: _selectChild,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(30),
+                  border: Border.all(color: Colors.grey.withOpacity(0.1)),
+                  boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))],
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    CircleAvatar(
+                      radius: 8,
+                      backgroundColor: Colors.green,
+                      child: const Icon(Icons.check, size: 10, color: Colors.white),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      "${_selectedChild!.name} (${_selectedChild!.className ?? 'N/A'})",
+                      style: TextStyle(fontWeight: FontWeight.w700, color: Colors.grey[800], fontSize: 13),
+                    ),
+                    if (_children.length > 1) ...[
+                      const SizedBox(width: 8),
+                      Icon(Icons.keyboard_arrow_down_rounded, color: Colors.grey[400], size: 20),
+                    ],
+                  ],
+                ),
               ),
             ),
           ),
           const SizedBox(height: 25),
 
-          // 2. Premium Live Tracking Card
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(25),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(24),
-              gradient: LinearGradient(
-                colors: [kPrimaryColor, const Color(0xFF2563EB)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight
-              ),
-              boxShadow: [BoxShadow(color: kPrimaryColor.withOpacity(0.3), blurRadius: 20, offset: const Offset(0, 10))],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                      decoration: BoxDecoration(color: Colors.white.withOpacity(0.15), borderRadius: BorderRadius.circular(20)),
-                      child: const Row(children: [
-                        Icon(Icons.fiber_manual_record, color: Colors.greenAccent, size: 10), 
-                        SizedBox(width: 6), 
-                        Text("LIVE STATUS", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 10))
-                      ]),
-                    ),
-                    Icon(Icons.school_rounded, color: Colors.white.withOpacity(0.5)),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                const Text("Mathematics Class", style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w800)),
-                Text("Chapter 4: Quadratic Equations", style: TextStyle(color: Colors.blue[100], fontSize: 14)),
-                const SizedBox(height: 25),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(10),
-                  child: LinearProgressIndicator(value: 0.75, minHeight: 6, backgroundColor: Colors.black26, valueColor: const AlwaysStoppedAnimation(Colors.white)),
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text("10:00 AM", style: TextStyle(color: Colors.blue[200], fontSize: 11)),
-                    Text("45 mins elapsed", style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
-                    Text("11:00 AM", style: TextStyle(color: Colors.blue[200], fontSize: 11)),
-                  ],
-                )
-              ],
-            ),
-          ),
-          
-          const SizedBox(height: 30),
-
-          // 3. Key Statistics Cards
+          // 2. Key Statistics Cards
           Row(
             children: [
-              Expanded(child: _buildInfoCard("Attendance", "92%", "Present", Icons.calendar_today_rounded, Colors.green)),
+              Expanded(
+                child: _buildInfoCard(
+                  "Attendance",
+                  "${attendancePercentage.toStringAsFixed(0)}%",
+                  "This Month",
+                  Icons.calendar_today_rounded,
+                  Colors.green,
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (c) => ChildAttendanceScreen(child: _selectedChild!),
+                    ),
+                  ),
+                ),
+              ),
               const SizedBox(width: 15),
-              Expanded(child: _buildInfoCard("Fee Due", "₹4,500", "Pay Now", Icons.account_balance_wallet_rounded, Colors.orange)),
+              Expanded(
+                child: _buildInfoCard(
+                  "Fee Due",
+                  "₹${totalDue.toStringAsFixed(0)}",
+                  totalDue > 0 ? "Pay Now" : "All Paid",
+                  Icons.account_balance_wallet_rounded,
+                  totalDue > 0 ? Colors.orange : Colors.green,
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (c) => ChildFeesScreen(child: _selectedChild!),
+                    ),
+                  ),
+                ),
+              ),
             ],
           ),
 
           const SizedBox(height: 30),
 
-          // 4. Feature Grid (Updated to match Teacher/Student Dashboard Style)
+          // 3. Feature Grid
           Text("Student Activity", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Colors.grey[800])),
           const SizedBox(height: 15),
           
           GridView.count(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            crossAxisCount: 3, // 3 Columns look more premium like Teacher dashboard
+            crossAxisCount: 3,
             childAspectRatio: 1.0,
             mainAxisSpacing: 15,
             crossAxisSpacing: 15,
             children: [
-              _buildFeatureIcon("Homework", Icons.menu_book_rounded, Colors.blue, () => _openPlaceholder(context, "Homework", Icons.menu_book)),
-              _buildFeatureIcon("Results", Icons.bar_chart_rounded, Colors.purple, () => _openPlaceholder(context, "Results", Icons.bar_chart)),
-              _buildFeatureIcon("Behaviour", Icons.psychology_rounded, Colors.redAccent, () => _openPlaceholder(context, "Behaviour", Icons.psychology)),
-              _buildFeatureIcon("Notices", Icons.campaign_rounded, Colors.amber[800]!, () => _openPlaceholder(context, "Notices", Icons.campaign)),
-              _buildFeatureIcon("Calendar", Icons.event_note_rounded, Colors.teal, () => _openPlaceholder(context, "Calendar", Icons.event_note)),
-              _buildFeatureIcon("Transport", Icons.directions_bus_rounded, Colors.indigo, () => _openPlaceholder(context, "Transport", Icons.directions_bus)),
-              _buildFeatureIcon("Leave", Icons.edit_calendar_rounded, Colors.pink, () => _openPlaceholder(context, "Leave", Icons.edit_calendar)),
-              _buildFeatureIcon("Gallery", Icons.photo_library_rounded, Colors.deepOrange, () => _openPlaceholder(context, "Gallery", Icons.photo_library)),
-              _buildFeatureIcon("Syllabus", Icons.topic_rounded, Colors.cyan, () => _openPlaceholder(context, "Syllabus", Icons.topic)),
+              _buildFeatureIcon(
+                "Attendance",
+                Icons.calendar_today_rounded,
+                Colors.green,
+                () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (c) => ChildAttendanceScreen(child: _selectedChild!)),
+                ),
+              ),
+              _buildFeatureIcon(
+                "Homework",
+                Icons.menu_book_rounded,
+                Colors.blue,
+                () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (c) => ChildHomeworkScreen(child: _selectedChild!)),
+                ),
+              ),
+              _buildFeatureIcon(
+                "Results",
+                Icons.bar_chart_rounded,
+                Colors.purple,
+                () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (c) => ChildResultsScreen(child: _selectedChild!)),
+                ),
+              ),
+              _buildFeatureIcon(
+                "Fees",
+                Icons.account_balance_wallet_rounded,
+                Colors.orange,
+                () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (c) => ChildFeesScreen(child: _selectedChild!)),
+                ),
+              ),
+              _buildFeatureIcon(
+                "Behaviour",
+                Icons.psychology_rounded,
+                Colors.redAccent,
+                () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (c) => ChildBehaviourScreen(child: _selectedChild!)),
+                ),
+              ),
+              _buildFeatureIcon(
+                "Notices",
+                Icons.campaign_rounded,
+                Colors.amber[800]!,
+                () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (c) => NoticesScreen(classId: _selectedChild?.classId)),
+                ),
+              ),
+              _buildFeatureIcon(
+                "Events",
+                Icons.event_note_rounded,
+                Colors.teal,
+                () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (c) => EventsScreen(classId: _selectedChild?.classId)),
+                ),
+              ),
+              _buildFeatureIcon(
+                "Transport",
+                Icons.directions_bus_rounded,
+                Colors.indigo,
+                () => _openPlaceholder(context, "Transport", Icons.directions_bus),
+              ),
+              _buildFeatureIcon(
+                "Leave",
+                Icons.edit_calendar_rounded,
+                Colors.pink,
+                () => _openPlaceholder(context, "Leave", Icons.edit_calendar),
+              ),
             ],
           ),
           
@@ -259,48 +483,11 @@ class _ParentDashboardState extends State<ParentDashboard> {
 
   // ==================== TAB 2: FEES ====================
   Widget _buildFeesTab() {
-    return ListView(
-      padding: const EdgeInsets.all(20),
-      children: [
-        Container(
-          padding: const EdgeInsets.all(30),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(24),
-            boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.08), blurRadius: 20, offset: const Offset(0, 5))],
-          ),
-          child: Column(
-            children: [
-              Text("Total Payable Amount", style: TextStyle(color: Colors.grey[500], fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1)),
-              const SizedBox(height: 10),
-              const Text("₹ 12,500", style: TextStyle(color: Colors.black87, fontSize: 36, fontWeight: FontWeight.w900)),
-              const SizedBox(height: 25),
-              SizedBox(
-                width: double.infinity,
-                height: 55,
-                child: ElevatedButton(
-                  onPressed: () => _openPlaceholder(context, "Payment", Icons.payment),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: kPrimaryColor,
-                    foregroundColor: Colors.white,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                  ),
-                  child: const Text("PAY FEES NOW", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, letterSpacing: 1)),
-                ),
-              )
-            ],
-          ),
-        ),
-        const SizedBox(height: 30),
-        Text("Payment Options", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Colors.grey[800])),
-        const SizedBox(height: 15),
-        _buildListOption("Transaction History", Icons.history_rounded, Colors.blue),
-        _buildListOption("Fee Structure", Icons.description_outlined, Colors.orange),
-        _buildListOption("Download Receipts", Icons.download_rounded, Colors.teal),
-        _buildListOption("Upcoming Dues", Icons.alarm_rounded, Colors.redAccent),
-      ],
-    );
+    if (_selectedChild == null) {
+      return const Center(child: Text('No child selected'));
+    }
+
+    return ChildFeesScreen(child: _selectedChild!);
   }
 
   // ==================== TAB 3: CHAT ====================
@@ -308,57 +495,94 @@ class _ParentDashboardState extends State<ParentDashboard> {
     return ListView(
       padding: const EdgeInsets.all(20),
       children: [
-        Text("Messages", style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: Colors.grey[900])),
+        Text("Connect", style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: Colors.grey[900])),
+        const SizedBox(height: 8),
+        Text(
+          "Get in touch with teachers, admin, or get instant help",
+          style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+        ),
         const SizedBox(height: 20),
-        _buildChatCard("Class Teacher", "Mrs. Radhika", "Regarding Aryan's project...", Icons.person_rounded, Colors.green),
+        
+        // Class Teacher Contact
+        if (_selectedChild != null)
+          FutureBuilder<Map<String, String>?>(
+            future: _parentService.getClassTeacherInfo(_selectedChild!.classId ?? ''),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: Padding(
+                  padding: EdgeInsets.all(20.0),
+                  child: CircularProgressIndicator(),
+                ));
+              }
+              
+              if (snapshot.hasData && snapshot.data != null) {
+                final teacher = snapshot.data!;
+                return _buildChatCard(
+                  "Class Teacher",
+                  teacher['teacherName'] ?? 'Unknown',
+                  "Contact regarding ${_selectedChild!.name}",
+                  Icons.person_rounded,
+                  Colors.green,
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (c) => ClassTeacherContactScreen(child: _selectedChild!),
+                    ),
+                  ),
+                );
+              }
+              
+              return _buildChatCard(
+                "Class Teacher",
+                "Not Available",
+                "Class teacher information not available",
+                Icons.person_off_rounded,
+                Colors.grey,
+                isDisabled: true,
+              );
+            },
+          ),
+        
+        if (_selectedChild != null) const SizedBox(height: 15),
+        
+        // Admin Office
+        _buildChatCard(
+          "Admin Office",
+          "Helpdesk",
+          "General inquiries and support",
+          Icons.admin_panel_settings_rounded,
+          Colors.blueGrey,
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (c) => const AdminOfficeContactScreen(),
+            ),
+          ),
+        ),
+        
         const SizedBox(height: 15),
-        _buildChatCard("Admin Office", "Helpdesk", "Bus route changed for tomorrow.", Icons.admin_panel_settings_rounded, Colors.blueGrey),
-        const SizedBox(height: 15),
-        _buildChatCard("AI Assistant", "24/7 Support", "How can I help you today?", Icons.smart_toy_rounded, Colors.indigo),
+        
+        // AI Assistant
+        _buildChatCard(
+          "AI Assistant",
+          "24/7 Support",
+          "Get instant answers to your questions",
+          Icons.smart_toy_rounded,
+          Colors.indigo,
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (c) => const ParentAIAssistantScreen(),
+            ),
+          ),
+        ),
       ],
     );
   }
 
   // ==================== TAB 4: PROFILE ====================
   Widget _buildProfileTab() {
-    return ListView(
-      padding: const EdgeInsets.all(20),
-      children: [
-        Container(
-          padding: const EdgeInsets.all(25),
-          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24), boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.05), blurRadius: 20, offset: const Offset(0, 5))]),
-          child: Row(
-            children: [
-              CircleAvatar(radius: 35, backgroundColor: kPrimaryColor.withOpacity(0.1), child: Icon(Icons.person, size: 35, color: kPrimaryColor)),
-              const SizedBox(width: 20),
-              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text("Mr. Sharma", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)), Text("Parent / Guardian", style: TextStyle(color: Colors.grey[500], fontSize: 13, fontWeight: FontWeight.w500))]),
-            ],
-          ),
-        ),
-        const SizedBox(height: 30),
-        _buildProfileItem("Personal Details", Icons.badge_outlined),
-        _buildProfileItem("Manage Students", Icons.supervisor_account_outlined),
-        _buildProfileItem("Help & Support", Icons.support_agent_rounded),
-        const SizedBox(height: 20),
-        _buildProfileItem("Logout", Icons.logout_rounded, isDestructive: true, onTap: () {
-          showDialog(
-            context: context,
-            builder: (ctx) => AlertDialog(
-              title: const Text("Logout"),
-              content: const Text("Are you sure?"),
-              actions: [
-                TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Cancel")),
-                ElevatedButton(
-                  onPressed: () { Navigator.pop(ctx); Navigator.pushReplacement(context, MaterialPageRoute(builder: (c) => const RoleSelectionScreen())); },
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
-                  child: const Text("Logout"),
-                )
-              ],
-            ),
-          );
-        }),
-      ],
-    );
+    return const ParentProfileScreen();
   }
 
   // ==================== HELPER WIDGETS ====================
@@ -367,28 +591,36 @@ class _ParentDashboardState extends State<ParentDashboard> {
     Navigator.push(context, MaterialPageRoute(builder: (c) => PlaceholderScreen(title: title, icon: icon)));
   }
 
-  Widget _buildInfoCard(String title, String val, String sub, IconData icon, Color color) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.05), blurRadius: 15, offset: const Offset(0, 5))],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(children: [Icon(icon, color: color, size: 18), const SizedBox(width: 8), Text(title, style: TextStyle(color: Colors.grey[600], fontSize: 11, fontWeight: FontWeight.bold))]),
-          const SizedBox(height: 12),
-          Text(val, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 4),
-          Text(sub, style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w600)),
-        ],
+  Widget _buildInfoCard(String title, String val, String sub, IconData icon, Color color, {VoidCallback? onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.05), blurRadius: 15, offset: const Offset(0, 5))],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(icon, color: color, size: 18),
+                const SizedBox(width: 8),
+                Text(title, style: TextStyle(color: Colors.grey[600], fontSize: 11, fontWeight: FontWeight.bold)),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(val, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 4),
+            Text(sub, style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w600)),
+          ],
+        ),
       ),
     );
   }
 
-  // UPDATED: Now matches Teacher Dashboard (Icon inside colored Circle inside white Card)
   Widget _buildFeatureIcon(String title, IconData icon, Color color, VoidCallback onTap) {
     return GestureDetector(
       onTap: onTap,
@@ -410,51 +642,95 @@ class _ParentDashboardState extends State<ParentDashboard> {
               child: Icon(icon, color: color, size: 28),
             ),
             const SizedBox(height: 10),
-            Text(title, textAlign: TextAlign.center, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.grey[800])),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.grey[800]),
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildListOption(String title, IconData icon, Color color) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.05), blurRadius: 5)]),
-      child: ListTile(
-        leading: Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(10)), child: Icon(icon, color: color, size: 20)),
-        title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-        trailing: Icon(Icons.chevron_right, size: 18, color: Colors.grey[300]),
-        onTap: () => _openPlaceholder(context, title, icon),
+  Widget _buildChatCard(
+    String title,
+    String subtitle,
+    String msg,
+    IconData icon,
+    Color color, {
+    VoidCallback? onTap,
+    bool isDisabled = false,
+  }) {
+    return GestureDetector(
+      onTap: isDisabled ? null : onTap,
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isDisabled ? Colors.grey[300]! : color.withOpacity(0.3),
+            width: isDisabled ? 1 : 1.5,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withOpacity(0.05),
+              blurRadius: 10,
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: isDisabled ? Colors.grey[100] : color.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, color: isDisabled ? Colors.grey[400] : color, size: 24),
+            ),
+            const SizedBox(width: 15),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      color: isDisabled ? Colors.grey[500] : Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      color: isDisabled ? Colors.grey[400] : Colors.grey[600],
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    msg,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: isDisabled ? Colors.grey[400] : Colors.grey[500],
+                      fontSize: 11,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (!isDisabled && onTap != null)
+              Icon(Icons.chevron_right, color: color, size: 20),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildChatCard(String title, String subtitle, String msg, IconData icon, Color color) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: Colors.grey[200]!)),
-      child: Row(children: [
-        Container(
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
-          child: Icon(icon, color: color, size: 24)
-        ),
-        const SizedBox(width: 15),
-        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
-          Text(msg, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: Colors.grey[500], fontSize: 12))
-        ])),
-      ]),
-    );
-  }
-
-  Widget _buildProfileItem(String title, IconData icon, {bool isDestructive = false, VoidCallback? onTap}) {
-    return ListTile(
-      onTap: onTap ?? () => _openPlaceholder(context, title, icon),
-      leading: Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: isDestructive ? Colors.red[50] : Colors.grey[100], borderRadius: BorderRadius.circular(8)), child: Icon(icon, color: isDestructive ? Colors.red : Colors.grey[700], size: 20)),
-      title: Text(title, style: TextStyle(fontWeight: FontWeight.w600, color: isDestructive ? Colors.red : Colors.black87)),
-      trailing: Icon(Icons.chevron_right, size: 18, color: Colors.grey[300]),
-    );
-  }
 }

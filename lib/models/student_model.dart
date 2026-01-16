@@ -9,6 +9,7 @@ class StudentModel extends UserModel {
   final String? section;
   final String? parentId;
   final String? parentName;
+  final String? parentEmail;
   final String? phoneNumber;
   final String? address;
   final DateTime? dateOfBirth;
@@ -28,6 +29,7 @@ class StudentModel extends UserModel {
     this.section,
     this.parentId,
     this.parentName,
+    this.parentEmail,
     this.phoneNumber,
     this.address,
     this.dateOfBirth,
@@ -50,6 +52,7 @@ class StudentModel extends UserModel {
       section: data['section'],
       parentId: data['parentId'],
       parentName: data['parentName'],
+      parentEmail: data['parentEmail'],
       phoneNumber: data['phoneNumber'],
       address: data['address'],
       dateOfBirth: (data['dateOfBirth'] as Timestamp?)?.toDate(),
@@ -70,6 +73,7 @@ class StudentModel extends UserModel {
       'section': section,
       'parentId': parentId,
       'parentName': parentName,
+      'parentEmail': parentEmail,
       'phoneNumber': phoneNumber,
       'address': address,
       'dateOfBirth': dateOfBirth != null ? Timestamp.fromDate(dateOfBirth!) : null,
@@ -92,6 +96,7 @@ class StudentModel extends UserModel {
     String? section,
     String? parentId,
     String? parentName,
+    String? parentEmail,
     String? phoneNumber,
     String? address,
     DateTime? dateOfBirth,
@@ -111,6 +116,7 @@ class StudentModel extends UserModel {
       section: section ?? this.section,
       parentId: parentId ?? this.parentId,
       parentName: parentName ?? this.parentName,
+      parentEmail: parentEmail ?? this.parentEmail,
       phoneNumber: phoneNumber ?? this.phoneNumber,
       address: address ?? this.address,
       dateOfBirth: dateOfBirth ?? this.dateOfBirth,

@@ -21,7 +21,7 @@ class _BehaviourLogScreenState extends State<BehaviourLogScreen> {
   String? _className;
   List<StudentModel> _students = [];
   List<BehaviourLogModel> _recentLogs = [];
-  bool _isLoading = false;
+  final bool _isLoading = false;
   bool _isLoadingStudents = true;
   bool _hasPermission = false;
   TeacherModel? _teacher;

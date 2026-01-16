@@ -40,6 +40,7 @@ class OnboardingService {
     String? emergencyContact,
     String? parentId,
     String? parentName,
+    String? parentEmail,
   }) async {
     try {
       final user = _auth.currentUser;
@@ -65,9 +66,15 @@ class OnboardingService {
         emergencyContact: emergencyContact,
         parentId: parentId,
         parentName: parentName,
+        parentEmail: parentEmail,
       );
 
       await _firestore.collection('users').doc(user.uid).update(studentModel.toMap());
+
+      // If parentEmail is provided, check if parent already exists and link immediately
+      if (parentEmail != null && parentEmail.isNotEmpty && parentId == null) {
+        await _linkStudentToExistingParent(user.uid, parentEmail, parentName);
+      }
     } catch (e) {
       throw Exception('Failed to complete onboarding: $e');
     }
@@ -188,6 +195,61 @@ class OnboardingService {
       }).toList();
     } catch (e) {
       return [];
+    }
+  }
+
+  // Link student to existing parent if parent already signed up
+  Future<void> _linkStudentToExistingParent(
+    String studentId,
+    String parentEmail,
+    String? parentName,
+  ) async {
+    try {
+      // Find parent with matching email
+      final parentQuery = await _firestore
+          .collection('users')
+          .where('role', isEqualTo: 'Parent')
+          .where('email', isEqualTo: parentEmail.toLowerCase())
+          .limit(1)
+          .get();
+
+      if (parentQuery.docs.isEmpty) {
+        // Try lowercase 'parent' as fallback
+        final fallbackQuery = await _firestore
+            .collection('users')
+            .where('role', isEqualTo: 'parent')
+            .where('email', isEqualTo: parentEmail.toLowerCase())
+            .limit(1)
+            .get();
+
+        if (fallbackQuery.docs.isEmpty) return;
+
+        final parentDoc = fallbackQuery.docs.first;
+        final parentId = parentDoc.id;
+        final parentData = parentDoc.data();
+        final actualParentName = parentName ?? parentData['name'] ?? '';
+
+        // Update student with parent info
+        await _firestore.collection('users').doc(studentId).update({
+          'parentId': parentId,
+          'parentName': actualParentName,
+        });
+        return;
+      }
+
+      final parentDoc = parentQuery.docs.first;
+      final parentId = parentDoc.id;
+      final parentData = parentDoc.data();
+      final actualParentName = parentName ?? parentData['name'] ?? '';
+
+      // Update student with parent info
+      await _firestore.collection('users').doc(studentId).update({
+        'parentId': parentId,
+        'parentName': actualParentName,
+      });
+    } catch (e) {
+      // Silently fail - linking is not critical for onboarding
+      print('Error linking student to existing parent: $e');
     }
   }
 
