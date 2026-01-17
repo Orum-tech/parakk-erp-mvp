@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../models/student_model.dart';
 import '../../services/parent_service.dart';
+import '../../services/student_service.dart';
+import 'teacher_chat_detail_screen.dart';
 
 class ClassTeacherContactScreen extends StatefulWidget {
   final StudentModel child;
@@ -14,6 +16,7 @@ class ClassTeacherContactScreen extends StatefulWidget {
 
 class _ClassTeacherContactScreenState extends State<ClassTeacherContactScreen> {
   final ParentService _parentService = ParentService();
+  final StudentService _studentService = StudentService();
   Map<String, String>? _teacherInfo;
   bool _isLoading = true;
 
@@ -26,8 +29,15 @@ class _ClassTeacherContactScreenState extends State<ClassTeacherContactScreen> {
   Future<void> _loadTeacherInfo() async {
     setState(() => _isLoading = true);
     try {
-      final teacherInfo = await _parentService.getClassTeacherInfo(widget.child.classId ?? '');
-      setState(() => _teacherInfo = teacherInfo);
+      // Try to get teacher info with teacherId
+      final teacherInfo = await _studentService.getClassTeacher(widget.child.classId ?? '');
+      if (teacherInfo != null) {
+        setState(() => _teacherInfo = teacherInfo);
+      } else {
+        // Fallback to parent service method
+        final fallbackInfo = await _parentService.getClassTeacherInfo(widget.child.classId ?? '');
+        setState(() => _teacherInfo = fallbackInfo);
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -130,7 +140,9 @@ class _ClassTeacherContactScreenState extends State<ClassTeacherContactScreen> {
                             ),
                             const SizedBox(height: 20),
                             Text(
-                              _teacherInfo!['teacherName'] ?? 'Unknown',
+                              _teacherInfo!['teacherName']?.isNotEmpty == true 
+                                  ? _teacherInfo!['teacherName']! 
+                                  : 'Not Assigned',
                               style: const TextStyle(
                                 fontSize: 22,
                                 fontWeight: FontWeight.bold,
@@ -162,6 +174,31 @@ class _ClassTeacherContactScreenState extends State<ClassTeacherContactScreen> {
                       const SizedBox(height: 30),
 
                       // Contact Actions
+                      // Chat with Teacher
+                      if (_teacherInfo!['teacherId'] != null)
+                        _buildContactButton(
+                          title: "Chat with Teacher",
+                          subtitle: "Send a message to ${_teacherInfo!['teacherName'] ?? 'Class Teacher'}",
+                          icon: Icons.chat_bubble_outline,
+                          color: Colors.green,
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (c) => TeacherChatDetailScreen(
+                                  teacherId: _teacherInfo!['teacherId']!,
+                                  teacherName: _teacherInfo!['teacherName'] ?? 'Class Teacher',
+                                  teacherEmail: _teacherInfo!['email'],
+                                  studentName: widget.child.name,
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+
+                      const SizedBox(height: 15),
+
+                      // Email Contact
                       if (_teacherInfo!['email'] != null && _teacherInfo!['email']!.isNotEmpty)
                         _buildContactButton(
                           title: "Send Email",
@@ -230,7 +267,7 @@ class _ClassTeacherContactScreenState extends State<ClassTeacherContactScreen> {
                             const SizedBox(width: 12),
                             Expanded(
                               child: Text(
-                                "You can contact the class teacher via email for any questions regarding your child's academic progress, attendance, or behavior.",
+                                "You can chat with the class teacher or send an email for any questions regarding your child's academic progress, attendance, or behavior.",
                                 style: TextStyle(
                                   color: Colors.blue[900],
                                   fontSize: 13,

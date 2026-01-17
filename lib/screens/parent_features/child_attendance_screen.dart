@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import '../../services/parent_service.dart';
 import '../../models/attendance_model.dart';
 import '../../models/student_model.dart';

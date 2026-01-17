@@ -1,8 +1,49 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../screens/forgot_password_screen.dart';
 
 class HelpCenterScreen extends StatelessWidget {
   const HelpCenterScreen({super.key});
+
+  static const String supportEmail = 'support@parakk-school.com';
+  static const String supportPhone = '+91-1234567890';
+
+  Future<void> _sendEmail(BuildContext context) async {
+    final Uri emailUri = Uri(
+      scheme: 'mailto',
+      path: supportEmail,
+      query: 'subject=Student Support Request',
+    );
+
+    if (await canLaunchUrl(emailUri)) {
+      await launchUrl(emailUri);
+    } else {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Could not open email client'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _makePhoneCall(BuildContext context) async {
+    final Uri phoneUri = Uri(scheme: 'tel', path: supportPhone);
+    if (await canLaunchUrl(phoneUri)) {
+      await launchUrl(phoneUri);
+    } else {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Could not make phone call'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -24,7 +65,44 @@ class HelpCenterScreen extends StatelessWidget {
              _showDialog(context, "Terms", "By using this app, you agree to follow school discipline guidelines.");
           }),
           _buildSectionTile("Contact Support", Icons.support_agent, () {
-             _showDialog(context, "Support", "Email us at: support@parakk.com\nCall: +91-1234567890");
+            showDialog(
+              context: context,
+              builder: (c) => AlertDialog(
+                title: const Text("Contact Support"),
+                content: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text("Get in touch with our support team:"),
+                    const SizedBox(height: 16),
+                    ListTile(
+                      leading: const Icon(Icons.email, color: Colors.blue),
+                      title: const Text("Email"),
+                      subtitle: Text(supportEmail),
+                      onTap: () {
+                        Navigator.pop(c);
+                        _sendEmail(context);
+                      },
+                    ),
+                    ListTile(
+                      leading: const Icon(Icons.call, color: Colors.green),
+                      title: const Text("Phone"),
+                      subtitle: Text(supportPhone),
+                      onTap: () {
+                        Navigator.pop(c);
+                        _makePhoneCall(context);
+                      },
+                    ),
+                  ],
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(c),
+                    child: const Text("Close"),
+                  ),
+                ],
+              ),
+            );
           }),
           const SizedBox(height: 20),
           const Text("FAQs", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),

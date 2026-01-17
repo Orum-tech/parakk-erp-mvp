@@ -2,7 +2,9 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:share_plus/share_plus.dart';
 import '../../services/notes_service.dart';
+import '../../services/download_service.dart';
 import '../../models/note_model.dart';
 import '../../models/student_model.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -16,6 +18,7 @@ class NotesScreen extends StatefulWidget {
 
 class _NotesScreenState extends State<NotesScreen> {
   final NotesService _notesService = NotesService();
+  final DownloadService _downloadService = DownloadService();
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final TextEditingController _searchController = TextEditingController();
 
@@ -38,6 +41,115 @@ class _NotesScreenState extends State<NotesScreen> {
   void dispose() {
     _searchController.dispose();
     super.dispose();
+  }
+
+  Future<void> _downloadNoteAttachments(NoteModel note) async {
+    if (note.attachmentUrls.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No attachments available to download'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    // Show loading dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: Card(
+          child: Padding(
+            padding: EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(height: 16),
+                Text('Downloading files...'),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    try {
+      // Increment download count
+      await _notesService.incrementDownloadCount(note.noteId);
+
+      // Download all attachments
+      final fileNames = note.attachmentUrls.map((url) {
+        final fileName = _downloadService.getFileNameFromUrl(url);
+        // Add note title prefix
+        return '${note.title}_$fileName';
+      }).toList();
+
+      final downloadedFiles = await _downloadService.downloadFiles(
+        urls: note.attachmentUrls,
+        fileNames: fileNames,
+        onProgress: (current, total, progress) {
+          // Could update progress if needed
+        },
+      );
+
+      // Close loading dialog
+      if (mounted) Navigator.pop(context);
+
+      // Show success and offer to share
+      if (mounted && downloadedFiles.isNotEmpty) {
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Download Complete'),
+            content: Text('${downloadedFiles.length} file(s) downloaded successfully.'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('OK'),
+              ),
+              if (downloadedFiles.length == 1)
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    _shareFile(downloadedFiles.first);
+                  },
+                  child: const Text('Share'),
+                ),
+            ],
+          ),
+        );
+      }
+    } catch (e) {
+      // Close loading dialog
+      if (mounted) Navigator.pop(context);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error downloading files: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _shareFile(File file) async {
+    try {
+      final xFile = XFile(file.path);
+      await Share.shareXFiles([xFile]);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error sharing file: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   Future<void> _loadStudentData() async {
@@ -728,13 +840,9 @@ class _NotesScreenState extends State<NotesScreen> {
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
               TextButton.icon(
-                onPressed: () {
-                  // TODO: Implement download
-                  _notesService.incrementDownloadCount(note.noteId);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Download feature coming soon')),
-                  );
-                },
+                onPressed: note.attachmentUrls.isEmpty
+                    ? null
+                    : () => _downloadNoteAttachments(note),
                 icon: const Icon(Icons.download, size: 18),
                 label: const Text('Download'),
                 style: TextButton.styleFrom(

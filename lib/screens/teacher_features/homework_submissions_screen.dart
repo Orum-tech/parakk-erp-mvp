@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../services/homework_service.dart';
+import '../../services/download_service.dart';
 import '../../models/homework_model.dart';
 import '../../models/homework_submission_model.dart';
 
@@ -19,6 +20,7 @@ class HomeworkSubmissionsScreen extends StatefulWidget {
 
 class _HomeworkSubmissionsScreenState extends State<HomeworkSubmissionsScreen> {
   final _homeworkService = HomeworkService();
+  final _downloadService = DownloadService();
 
   @override
   Widget build(BuildContext context) {
@@ -518,14 +520,25 @@ class _HomeworkSubmissionsScreenState extends State<HomeworkSubmissionsScreen> {
                       url.split('/').last,
                       style: const TextStyle(fontSize: 14),
                     ),
-                    trailing: IconButton(
-                      icon: const Icon(Icons.open_in_new),
-                      onPressed: () async {
-                        final uri = Uri.parse(url);
-                        if (await canLaunchUrl(uri)) {
-                          await launchUrl(uri, mode: LaunchMode.externalApplication);
-                        }
-                      },
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.download),
+                          tooltip: 'Download',
+                          onPressed: () => _downloadAttachment(url),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.open_in_new),
+                          tooltip: 'Open',
+                          onPressed: () async {
+                            final uri = Uri.parse(url);
+                            if (await canLaunchUrl(uri)) {
+                              await launchUrl(uri, mode: LaunchMode.externalApplication);
+                            }
+                          },
+                        ),
+                      ],
                     ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
@@ -735,5 +748,57 @@ class _HomeworkSubmissionsScreenState extends State<HomeworkSubmissionsScreen> {
         ],
       ),
     );
+  }
+
+  Future<void> _downloadAttachment(String url) async {
+    try {
+      final fileName = _downloadService.getFileNameFromUrl(url);
+      
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(
+          child: Card(
+            child: Padding(
+              padding: EdgeInsets.all(20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(height: 16),
+                  Text('Downloading file...'),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+
+      final file = await _downloadService.downloadFile(
+        url: url,
+        fileName: fileName,
+      );
+
+      if (mounted) Navigator.pop(context);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('File downloaded: $fileName'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) Navigator.pop(context);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error downloading file: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 }

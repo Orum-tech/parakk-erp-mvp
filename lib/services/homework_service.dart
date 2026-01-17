@@ -1,11 +1,20 @@
+import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/homework_model.dart';
 import '../models/homework_submission_model.dart';
+import 'notification_service.dart';
+import 'attendance_service.dart';
 
 class HomeworkService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  
+  void debugPrint(String message) {
+    if (kDebugMode) {
+      print(message);
+    }
+  }
 
   // Create homework (Teacher)
   Future<String> createHomework({
@@ -51,6 +60,26 @@ class HomeworkService {
       
       // Update with generated ID
       await docRef.update({'homeworkId': docRef.id});
+
+      // Get all students in the class and create notifications
+      try {
+        final attendanceService = AttendanceService();
+        final students = await attendanceService.getStudentsByClass(classId);
+        final studentIds = students.map((s) => s.uid).toList();
+        
+        if (studentIds.isNotEmpty) {
+          final notificationService = NotificationService();
+          await notificationService.notifyHomeworkAssigned(
+            studentIds: studentIds,
+            homeworkTitle: title,
+            homeworkId: docRef.id,
+            dueDate: dueDate,
+          );
+        }
+      } catch (e) {
+        // Don't fail homework creation if notification fails
+        debugPrint('Error creating notifications: $e');
+      }
 
       return docRef.id;
     } catch (e) {

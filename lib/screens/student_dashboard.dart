@@ -8,6 +8,7 @@ import '../services/timetable_service.dart';
 import '../services/homework_service.dart';
 import '../services/attendance_service.dart';
 import '../services/auth_service.dart';
+import '../services/student_service.dart';
 
 // ==========================================================
 //                 1. IMPORTS: CORE SCREENS
@@ -44,7 +45,8 @@ import 'student_features/ai_tutor_screen.dart';
 // ==========================================================
 //                 4. IMPORTS: CONNECT (TEACHER CHAT)
 // ==========================================================
-import 'student_features/teacher_chat_screen.dart'; // ✅ Added Teacher Chat Import
+import 'student_features/teacher_chat_screen.dart';
+import 'student_features/student_admin_contact_screen.dart';
 
 // ==========================================================
 //                 5. IMPORTS: PROFILE
@@ -53,6 +55,8 @@ import 'student_features/my_account_screen.dart';
 import 'student_features/academic_reports_screen.dart';
 import 'student_features/app_settings_screen.dart';
 import 'student_features/help_center_screen.dart';
+import 'student_features/notifications_screen.dart';
+import '../services/notification_service.dart';
 
 class StudentDashboard extends StatefulWidget {
   const StudentDashboard({super.key});
@@ -73,10 +77,12 @@ class _StudentDashboardState extends State<StudentDashboard> {
   // Services
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final NotificationService _notificationService = NotificationService();
   final TimetableService _timetableService = TimetableService();
   final HomeworkService _homeworkService = HomeworkService();
   final AttendanceService _attendanceService = AttendanceService();
   final AuthService _authService = AuthService();
+  final StudentService _studentService = StudentService();
 
   // Data state
   StudentModel? _student;
@@ -362,9 +368,44 @@ class _StudentDashboardState extends State<StudentDashboard> {
                 )
               ],
             ),
-            child: IconButton(
-              icon: Icon(Icons.notifications_outlined, color: Colors.grey[800], size: 24),
-              onPressed: () => _openPlaceholder(context, "Notifications", Icons.notifications),
+            child: StreamBuilder<int>(
+              stream: _notificationService.getUnreadCount(),
+              builder: (context, snapshot) {
+                final unreadCount = snapshot.data ?? 0;
+                return Stack(
+                  children: [
+                    IconButton(
+                      icon: Icon(Icons.notifications_outlined, color: Colors.grey[800], size: 24),
+                      onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (c) => const NotificationsScreen())),
+                    ),
+                    if (unreadCount > 0)
+                      Positioned(
+                        right: 8,
+                        top: 8,
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: const BoxDecoration(
+                            color: Colors.red,
+                            shape: BoxShape.circle,
+                          ),
+                          constraints: const BoxConstraints(
+                            minWidth: 16,
+                            minHeight: 16,
+                          ),
+                          child: Text(
+                            unreadCount > 99 ? '99+' : '$unreadCount',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      ),
+                  ],
+                );
+              },
             ),
           ),
         ],
@@ -804,6 +845,11 @@ class _StudentDashboardState extends State<StudentDashboard> {
             "Smart Connect",
             style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800)
           ),
+          const SizedBox(height: 5),
+          Text(
+            "Get in touch with teachers, admin, or get instant help",
+            style: TextStyle(fontSize: 13, color: Colors.grey[600])
+          ),
           const SizedBox(height: 20),
           
           // --- AI TUTOR CARD ---
@@ -852,9 +898,9 @@ class _StudentDashboardState extends State<StudentDashboard> {
             ),
           ),
           
-          const SizedBox(height: 20), // Added spacing
+          const SizedBox(height: 20),
 
-          // --- NEW: TALK TO TEACHERS CARD ---
+          // --- TALK TO TEACHERS CARD ---
           GestureDetector(
             onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const TeacherChatScreen())),
             child: Container(
@@ -888,19 +934,90 @@ class _StudentDashboardState extends State<StudentDashboard> {
               ),
             ),
           ),
+
+          const SizedBox(height: 20),
+
+          // --- ADMIN OFFICE CARD ---
+          GestureDetector(
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (c) => const StudentAdminContactScreen())),
+            child: Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: Colors.blueGrey.withOpacity(0.1)),
+                boxShadow: [BoxShadow(color: Colors.blueGrey.withOpacity(0.05), blurRadius: 15)],
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(color: Colors.blueGrey.withOpacity(0.1), shape: BoxShape.circle),
+                    child: const Icon(Icons.admin_panel_settings_rounded, color: Colors.blueGrey, size: 28),
+                  ),
+                  const SizedBox(width: 20),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text("Admin Office", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                        SizedBox(height: 4),
+                        Text("General inquiries and support", style: TextStyle(color: Colors.grey, fontSize: 12)),
+                      ],
+                    ),
+                  ),
+                  const Icon(Icons.arrow_forward_ios_rounded, size: 16, color: Colors.grey),
+                ],
+              ),
+            ),
+          ),
           
           const SizedBox(height: 30),
-          const Text("Recent Messages", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
-          const SizedBox(height: 15),
-
-          _buildMessageTile(
-            "Class Teacher", "Mrs. Radhika", "Don't forget tomorrow's test!", Icons.person_rounded, Colors.green, 
-            () => Navigator.push(context, MaterialPageRoute(builder: (c) => const TeacherChatScreen()))
-          ),
-          _buildMessageTile(
-            "School Admin", "Notice Board", "School closed on Friday.", Icons.campaign_rounded, Colors.orange, 
-            () => Navigator.push(context, MaterialPageRoute(builder: (c) => const NoticeBoardScreen()))
-          ),
+          
+          // Class Teacher Quick Access
+          if (_student?.classId != null)
+            FutureBuilder<Map<String, String>?>(
+              future: _studentService.getClassTeacher(_student!.classId!),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const SizedBox.shrink();
+                }
+                
+                if (snapshot.hasData && snapshot.data != null) {
+                  final teacher = snapshot.data!;
+                  final teacherName = teacher['teacherName'];
+                  
+                  if (teacherName != null && teacherName.isNotEmpty) {
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text("Quick Access", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+                        const SizedBox(height: 15),
+                        _buildMessageTile(
+                          "Class Teacher",
+                          teacherName,
+                          "Contact your class teacher",
+                          Icons.person_rounded,
+                          Colors.green,
+                          () => Navigator.push(context, MaterialPageRoute(builder: (c) => const TeacherChatScreen())),
+                        ),
+                        const SizedBox(height: 15),
+                        _buildMessageTile(
+                          "Notices",
+                          "School Announcements",
+                          "View important notices",
+                          Icons.campaign_rounded,
+                          Colors.orange,
+                          () => Navigator.push(context, MaterialPageRoute(builder: (c) => const NoticeBoardScreen())),
+                        ),
+                      ],
+                    );
+                  }
+                }
+                
+                return const SizedBox.shrink();
+              },
+            ),
           
           const SizedBox(height: 100),
         ],

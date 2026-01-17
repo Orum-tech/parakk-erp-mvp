@@ -1,8 +1,137 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:intl/intl.dart';
+import '../../models/student_model.dart';
+import '../../services/attendance_service.dart';
+import '../../services/chat_service.dart';
+import 'parent_chat_detail_screen.dart';
 
-// --- MAIN CHAT LIST SCREEN ---
-class ParentChatScreen extends StatelessWidget {
+class ParentChatScreen extends StatefulWidget {
   const ParentChatScreen({super.key});
+
+  @override
+  State<ParentChatScreen> createState() => _ParentChatScreenState();
+}
+
+class _ParentChatScreenState extends State<ParentChatScreen> {
+  final AttendanceService _attendanceService = AttendanceService();
+  final ChatService _chatService = ChatService();
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+
+  String? _classId;
+  List<Map<String, dynamic>> _parentChats = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadParentChats();
+  }
+
+  Future<void> _loadParentChats() async {
+    setState(() => _isLoading = true);
+    try {
+      final user = _auth.currentUser;
+      if (user == null) {
+        setState(() => _isLoading = false);
+        return;
+      }
+
+      // Get teacher's class
+      _classId = await _attendanceService.getClassTeacherClassId();
+      if (_classId == null) {
+        setState(() => _isLoading = false);
+        return;
+      }
+
+      // Get all students in the class
+      final students = await _attendanceService.getStudentsByClass(_classId!);
+
+      // Get parent information for each student
+      final parentChatsMap = <String, Map<String, dynamic>>{};
+
+      for (var student in students) {
+        if (student.parentId != null && student.parentId!.isNotEmpty) {
+          // Check if we already have this parent
+          if (!parentChatsMap.containsKey(student.parentId)) {
+            // Get parent details
+            final parentDoc = await FirebaseFirestore.instance
+                .collection('users')
+                .doc(student.parentId)
+                .get();
+
+            if (parentDoc.exists) {
+              final parentData = parentDoc.data()!;
+              final parentName = parentData['name'] ?? 'Unknown Parent';
+              final parentEmail = parentData['email'];
+
+              // Get chat info
+              final chatId = await _chatService.getOrCreateChatId(user.uid, student.parentId!);
+              final unreadCount = await _chatService.getUnreadCount(chatId);
+
+              // Get last message
+              final messages = await _chatService.getChatMessages(chatId).first;
+              String lastMessage = 'No messages yet';
+              DateTime? lastMessageTime;
+
+              if (messages.isNotEmpty) {
+                final lastMsg = messages.last;
+                lastMessage = lastMsg.message;
+                lastMessageTime = lastMsg.createdAt.toDate();
+              }
+
+              parentChatsMap[student.parentId!] = {
+                'parentId': student.parentId,
+                'parentName': parentName,
+                'parentEmail': parentEmail,
+                'studentId': student.uid,
+                'studentName': student.name,
+                'studentClass': student.className ?? 'N/A',
+                'chatId': chatId,
+                'lastMessage': lastMessage,
+                'lastMessageTime': lastMessageTime,
+                'unreadCount': unreadCount,
+              };
+            }
+          } else {
+            // Add additional student to existing parent entry
+            final existing = parentChatsMap[student.parentId!]!;
+            final currentStudents = existing['students'] as List<Map<String, dynamic>>? ?? [];
+            currentStudents.add({
+              'studentId': student.uid,
+              'studentName': student.name,
+            });
+            existing['students'] = currentStudents;
+          }
+        }
+      }
+
+      setState(() {
+        _parentChats = parentChatsMap.values.toList();
+        // Sort by last message time (most recent first)
+        _parentChats.sort((a, b) {
+          final timeA = a['lastMessageTime'] as DateTime?;
+          final timeB = b['lastMessageTime'] as DateTime?;
+          if (timeA == null && timeB == null) return 0;
+          if (timeA == null) return 1;
+          if (timeB == null) return -1;
+          return timeB.compareTo(timeA);
+        });
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() => _isLoading = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error loading parent chats: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -13,20 +142,73 @@ class ParentChatScreen extends StatelessWidget {
         backgroundColor: Colors.white,
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.black),
-      ),
-      body: ListView(
-        padding: const EdgeInsets.all(10),
-        children: [
-          _buildChatTile(context, "Mr. Sharma", "Aryan (10-A)", "Sir, is tomorrow a holiday?", "10:30 AM", true),
-          _buildChatTile(context, "Mrs. Verma", "Rohan (10-A)", "Thanks for the update.", "Yesterday", false),
-          _buildChatTile(context, "Mr. Iyer", "Priya (10-A)", "Okay, I will check.", "Yesterday", false),
-          _buildChatTile(context, "Mrs. Khan", "Zoya (10-A)", "Regarding the fees...", "12 Dec", false),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _loadParentChats,
+          ),
         ],
       ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _parentChats.isEmpty
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.chat_bubble_outline, size: 64, color: Colors.grey[400]),
+                      const SizedBox(height: 16),
+                      Text(
+                        'No parent chats',
+                        style: TextStyle(color: Colors.grey[600], fontSize: 16),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Parents of students in your class will appear here',
+                        style: TextStyle(color: Colors.grey[500], fontSize: 14),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
+                )
+              : RefreshIndicator(
+                  onRefresh: _loadParentChats,
+                  child: ListView.builder(
+                    padding: const EdgeInsets.all(10),
+                    itemCount: _parentChats.length,
+                    itemBuilder: (context, index) {
+                      final chat = _parentChats[index];
+                      return _buildChatTile(context, chat);
+                    },
+                  ),
+                ),
     );
   }
 
-  Widget _buildChatTile(BuildContext context, String name, String student, String msg, String time, bool isUnread) {
+  Widget _buildChatTile(BuildContext context, Map<String, dynamic> chat) {
+    final parentName = chat['parentName'] as String;
+    final studentName = chat['studentName'] as String;
+    final studentClass = chat['studentClass'] as String;
+    final lastMessage = chat['lastMessage'] as String;
+    final lastMessageTime = chat['lastMessageTime'] as DateTime?;
+    final unreadCount = chat['unreadCount'] as int;
+
+    String timeStr = 'No messages';
+    if (lastMessageTime != null) {
+      final now = DateTime.now();
+      final difference = now.difference(lastMessageTime);
+
+      if (difference.inDays == 0) {
+        timeStr = DateFormat('hh:mm a').format(lastMessageTime);
+      } else if (difference.inDays == 1) {
+        timeStr = 'Yesterday';
+      } else if (difference.inDays < 7) {
+        timeStr = DateFormat('EEE').format(lastMessageTime);
+      } else {
+        timeStr = DateFormat('MMM dd').format(lastMessageTime);
+      }
+    }
+
     return Card(
       margin: const EdgeInsets.only(bottom: 10),
       elevation: 0,
@@ -36,147 +218,88 @@ class ParentChatScreen extends StatelessWidget {
         leading: CircleAvatar(
           radius: 25,
           backgroundColor: const Color(0xFF00897B).withOpacity(0.1),
-          child: Text(name[0], style: const TextStyle(color: Color(0xFF00897B), fontWeight: FontWeight.bold, fontSize: 18)),
+          child: Text(
+            parentName.isNotEmpty ? parentName[0].toUpperCase() : 'P',
+            style: const TextStyle(
+              color: Color(0xFF00897B),
+              fontWeight: FontWeight.bold,
+              fontSize: 18,
+            ),
+          ),
         ),
-        title: Text(name, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+        title: Text(
+          parentName,
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+        ),
         subtitle: Row(
           children: [
-            Text("[$student] ", style: TextStyle(color: Colors.grey[800], fontSize: 12, fontWeight: FontWeight.w500)),
-            Expanded(child: Text(msg, maxLines: 1, overflow: TextOverflow.ellipsis)),
+            Text(
+              "[$studentName - $studentClass] ",
+              style: TextStyle(
+                color: Colors.grey[800],
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            Expanded(
+              child: Text(
+                lastMessage,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: unreadCount > 0 ? Colors.black87 : Colors.grey[600],
+                  fontWeight: unreadCount > 0 ? FontWeight.w600 : FontWeight.normal,
+                ),
+              ),
+            ),
           ],
         ),
         trailing: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
-            Text(time, style: TextStyle(color: isUnread ? Colors.green : Colors.grey, fontSize: 12, fontWeight: isUnread ? FontWeight.bold : FontWeight.normal)),
-            if (isUnread) ...[
+            Text(
+              timeStr,
+              style: TextStyle(
+                color: unreadCount > 0 ? Colors.green : Colors.grey,
+                fontSize: 12,
+                fontWeight: unreadCount > 0 ? FontWeight.bold : FontWeight.normal,
+              ),
+            ),
+            if (unreadCount > 0) ...[
               const SizedBox(height: 5),
-              const CircleAvatar(radius: 5, backgroundColor: Colors.green)
-            ]
+              Container(
+                padding: const EdgeInsets.all(4),
+                decoration: const BoxDecoration(
+                  color: Colors.green,
+                  shape: BoxShape.circle,
+                ),
+                child: Text(
+                  unreadCount > 99 ? '99+' : '$unreadCount',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
           ],
         ),
         onTap: () {
-          Navigator.push(context, MaterialPageRoute(builder: (c) => ChatDetailScreen(parentName: name, studentName: student)));
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (c) => ParentChatDetailScreen(
+                parentId: chat['parentId'] as String,
+                parentName: parentName,
+                parentEmail: chat['parentEmail'] as String?,
+                studentName: studentName,
+                studentId: chat['studentId'] as String?,
+              ),
+            ),
+          ).then((_) => _loadParentChats()); // Refresh on return
         },
-      ),
-    );
-  }
-}
-
-// --- SUB SCREEN: CHAT DETAIL (Working) ---
-class ChatDetailScreen extends StatefulWidget {
-  final String parentName;
-  final String studentName;
-
-  const ChatDetailScreen({super.key, required this.parentName, required this.studentName});
-
-  @override
-  State<ChatDetailScreen> createState() => _ChatDetailScreenState();
-}
-
-class _ChatDetailScreenState extends State<ChatDetailScreen> {
-  final TextEditingController _msgController = TextEditingController();
-  
-  // Dummy Chat History
-  final List<Map<String, dynamic>> _messages = [
-    {"msg": "Hello Sir, I wanted to ask about the unit test syllabus.", "isMe": false},
-    {"msg": "Hello Mrs. Verma. It includes Chapter 4 and 5.", "isMe": true},
-    {"msg": "Okay, thank you sir!", "isMe": false},
-  ];
-
-  void _sendMessage() {
-    if (_msgController.text.isEmpty) return;
-    setState(() {
-      _messages.add({"msg": _msgController.text, "isMe": true});
-      _msgController.clear();
-    });
-    // Simulate scroll to bottom if needed
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFE5DDD5), // WhatsApp-like bg color
-      appBar: AppBar(
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(widget.parentName, style: const TextStyle(color: Colors.black, fontSize: 16)),
-            Text("Parent of ${widget.studentName}", style: const TextStyle(color: Colors.grey, fontSize: 12)),
-          ],
-        ),
-        backgroundColor: Colors.white,
-        iconTheme: const IconThemeData(color: Colors.black),
-        elevation: 1,
-        actions: [
-          IconButton(onPressed: () {}, icon: const Icon(Icons.call)),
-        ],
-      ),
-      body: Column(
-        children: [
-          Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.all(20),
-              itemCount: _messages.length,
-              itemBuilder: (context, index) {
-                final msg = _messages[index];
-                return Align(
-                  alignment: msg['isMe'] ? Alignment.centerRight : Alignment.centerLeft,
-                  child: Container(
-                    margin: const EdgeInsets.only(bottom: 10),
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                    decoration: BoxDecoration(
-                      color: msg['isMe'] ? const Color(0xFF00897B) : Colors.white,
-                      borderRadius: BorderRadius.only(
-                        topLeft: const Radius.circular(12),
-                        topRight: const Radius.circular(12),
-                        bottomLeft: msg['isMe'] ? const Radius.circular(12) : Radius.zero,
-                        bottomRight: msg['isMe'] ? Radius.zero : const Radius.circular(12),
-                      ),
-                      boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.1), blurRadius: 2)],
-                    ),
-                    child: Text(
-                      msg['msg'],
-                      style: TextStyle(color: msg['isMe'] ? Colors.white : Colors.black87),
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-          
-          // Input Field
-          Container(
-            padding: const EdgeInsets.all(10),
-            color: Colors.white,
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _msgController,
-                    decoration: InputDecoration(
-                      hintText: "Type a message...",
-                      filled: true,
-                      fillColor: Colors.grey[100],
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(30), borderSide: BorderSide.none),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                CircleAvatar(
-                  backgroundColor: const Color(0xFF00897B),
-                  radius: 24,
-                  child: IconButton(
-                    icon: const Icon(Icons.send, color: Colors.white, size: 20),
-                    onPressed: _sendMessage,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
       ),
     );
   }

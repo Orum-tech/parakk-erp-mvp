@@ -12,6 +12,7 @@ class UserModel {
   final String email;
   final UserRole role;
   final Timestamp createdAt;
+  final String? profilePictureUrl;
 
   UserModel({
     required this.uid,
@@ -19,6 +20,7 @@ class UserModel {
     required this.email,
     required this.role,
     required this.createdAt,
+    this.profilePictureUrl,
   });
 
   // Convert role enum to string for Firestore
@@ -42,6 +44,7 @@ class UserModel {
       email: data['email'] ?? '',
       role: _roleFromString(data['role'] ?? 'Student'),
       createdAt: data['createdAt'] ?? Timestamp.now(),
+      profilePictureUrl: data['profilePictureUrl'],
     );
   }
 
@@ -53,6 +56,7 @@ class UserModel {
       'email': email,
       'role': roleString,
       'createdAt': createdAt,
+      'profilePictureUrl': profilePictureUrl,
     };
   }
 

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'role_selection_screen.dart';
 import '../models/student_model.dart';
 import '../models/user_model.dart';
 import '../services/parent_service.dart';
@@ -17,6 +16,9 @@ import 'parent_features/parent_profile_screen.dart';
 import 'parent_features/parent_ai_assistant_screen.dart';
 import 'parent_features/class_teacher_contact_screen.dart';
 import 'parent_features/admin_office_contact_screen.dart';
+import 'parent_features/leave_request_screen.dart';
+import 'parent_features/notifications_screen.dart';
+import '../services/notification_service.dart';
 import 'placeholder_screen.dart';
 
 class ParentDashboard extends StatefulWidget {
@@ -40,6 +42,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final ParentService _parentService = ParentService();
   final AuthService _authService = AuthService();
+  final NotificationService _notificationService = NotificationService();
 
   // Data state
   UserModel? _parent;
@@ -228,12 +231,47 @@ class _ParentDashboardState extends State<ParentDashboard> {
               shape: BoxShape.circle, 
               boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)]
             ),
-            child: IconButton(
-              icon: Icon(Icons.notifications_outlined, color: Colors.grey[800], size: 24),
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (c) => const NoticesScreen()),
-              ),
+            child: StreamBuilder<int>(
+              stream: _notificationService.getUnreadCount(),
+              builder: (context, snapshot) {
+                final unreadCount = snapshot.data ?? 0;
+                return Stack(
+                  children: [
+                    IconButton(
+                      icon: Icon(Icons.notifications_outlined, color: Colors.grey[800], size: 24),
+                      onPressed: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (c) => const ParentNotificationsScreen()),
+                      ),
+                    ),
+                    if (unreadCount > 0)
+                      Positioned(
+                        right: 8,
+                        top: 8,
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: const BoxDecoration(
+                            color: Colors.red,
+                            shape: BoxShape.circle,
+                          ),
+                          constraints: const BoxConstraints(
+                            minWidth: 16,
+                            minHeight: 16,
+                          ),
+                          child: Text(
+                            unreadCount > 99 ? '99+' : '$unreadCount',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      ),
+                  ],
+                );
+              },
             ),
           ),
         ],
@@ -298,7 +336,24 @@ class _ParentDashboardState extends State<ParentDashboard> {
   // ==================== TAB 1: HOME ====================
   Widget _buildHomeTab() {
     if (_selectedChild == null) {
-      return const Center(child: Text('No child selected'));
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.child_care_outlined, size: 64, color: Colors.grey[400]),
+            const SizedBox(height: 16),
+            const Text(
+              'No child selected',
+              style: TextStyle(color: Colors.grey, fontSize: 16),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Please select a child to view their information',
+              style: TextStyle(color: Colors.grey, fontSize: 12),
+            ),
+          ],
+        ),
+      );
     }
 
     final attendancePercentage = _attendanceStats?['percentage'] ?? 0.0;
@@ -470,7 +525,12 @@ class _ParentDashboardState extends State<ParentDashboard> {
                 "Leave",
                 Icons.edit_calendar_rounded,
                 Colors.pink,
-                () => _openPlaceholder(context, "Leave", Icons.edit_calendar),
+                () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (c) => LeaveRequestScreen(child: _selectedChild),
+                  ),
+                ),
               ),
             ],
           ),
@@ -484,7 +544,24 @@ class _ParentDashboardState extends State<ParentDashboard> {
   // ==================== TAB 2: FEES ====================
   Widget _buildFeesTab() {
     if (_selectedChild == null) {
-      return const Center(child: Text('No child selected'));
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.account_balance_wallet_outlined, size: 64, color: Colors.grey[400]),
+            const SizedBox(height: 16),
+            const Text(
+              'No child selected',
+              style: TextStyle(color: Colors.grey, fontSize: 16),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Please select a child to view fee information',
+              style: TextStyle(color: Colors.grey, fontSize: 12),
+            ),
+          ],
+        ),
+      );
     }
 
     return ChildFeesScreen(child: _selectedChild!);
@@ -517,24 +594,27 @@ class _ParentDashboardState extends State<ParentDashboard> {
               
               if (snapshot.hasData && snapshot.data != null) {
                 final teacher = snapshot.data!;
-                return _buildChatCard(
-                  "Class Teacher",
-                  teacher['teacherName'] ?? 'Unknown',
-                  "Contact regarding ${_selectedChild!.name}",
-                  Icons.person_rounded,
-                  Colors.green,
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (c) => ClassTeacherContactScreen(child: _selectedChild!),
+                final teacherName = teacher['teacherName'];
+                if (teacherName != null && teacherName.isNotEmpty && teacherName != 'Unknown') {
+                  return _buildChatCard(
+                    "Class Teacher",
+                    teacherName,
+                    "Contact regarding ${_selectedChild!.name}",
+                    Icons.person_rounded,
+                    Colors.green,
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (c) => ClassTeacherContactScreen(child: _selectedChild!),
+                      ),
                     ),
-                  ),
-                );
+                  );
+                }
               }
               
               return _buildChatCard(
                 "Class Teacher",
-                "Not Available",
+                "Not Assigned",
                 "Class teacher information not available",
                 Icons.person_off_rounded,
                 Colors.grey,

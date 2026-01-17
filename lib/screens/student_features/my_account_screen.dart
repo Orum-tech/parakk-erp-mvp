@@ -1,8 +1,11 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../models/student_model.dart';
+import '../../services/storage_service.dart';
 
 class MyAccountScreen extends StatefulWidget {
   const MyAccountScreen({super.key});
@@ -14,10 +17,13 @@ class MyAccountScreen extends StatefulWidget {
 class _MyAccountScreenState extends State<MyAccountScreen> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final StorageService _storageService = StorageService();
+  final ImagePicker _imagePicker = ImagePicker();
 
   StudentModel? _student;
   bool _isLoading = true;
   bool _isSaving = false;
+  bool _isUploadingPicture = false;
 
   // Controllers
   final TextEditingController _phoneController = TextEditingController();
@@ -64,6 +70,63 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
       }
     } finally {
       setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _uploadProfilePicture() async {
+    try {
+      final XFile? image = await _imagePicker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 85,
+        maxWidth: 800,
+        maxHeight: 800,
+      );
+
+      if (image == null) return;
+
+      setState(() => _isUploadingPicture = true);
+
+      // Upload to Firebase Storage
+      final imageFile = File(image.path);
+      final downloadUrl = await _storageService.uploadProfilePicture(
+        imageFile,
+        onProgress: (progress) {
+          // Could show progress if needed
+        },
+      );
+
+      // Update user document in Firestore
+      final user = _auth.currentUser;
+      if (user != null) {
+        await _firestore.collection('users').doc(user.uid).update({
+          'profilePictureUrl': downloadUrl,
+        });
+
+        // Reload student data
+        await _loadStudentData();
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Profile picture updated successfully!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error uploading picture: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isUploadingPicture = false);
+      }
     }
   }
 
@@ -203,27 +266,42 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
                       shape: BoxShape.circle,
                       border: Border.all(color: const Color(0xFF1565C0), width: 2),
                     ),
-                    child: const CircleAvatar(
+                    child: CircleAvatar(
                       radius: 60,
-                      backgroundImage: NetworkImage('https://i.pravatar.cc/150?img=12'),
+                      backgroundImage: _student?.profilePictureUrl != null
+                          ? NetworkImage(_student!.profilePictureUrl!)
+                          : null,
+                      child: _student?.profilePictureUrl == null
+                          ? Text(
+                              _student?.name.isNotEmpty == true
+                                  ? _student!.name[0].toUpperCase()
+                                  : 'S',
+                              style: const TextStyle(fontSize: 40, fontWeight: FontWeight.bold),
+                            )
+                          : null,
                     ),
                   ),
                   Positioned(
                     bottom: 0,
                     right: 0,
                     child: GestureDetector(
-                      onTap: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text("Uploading Profile Picture... 📸"), backgroundColor: Colors.green),
-                        );
-                      },
+                      onTap: _isUploadingPicture ? null : _uploadProfilePicture,
                       child: Container(
                         padding: const EdgeInsets.all(8),
-                        decoration: const BoxDecoration(
-                          color: Color(0xFF1565C0),
+                        decoration: BoxDecoration(
+                          color: _isUploadingPicture ? Colors.grey : const Color(0xFF1565C0),
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(Icons.camera_alt, color: Colors.white, size: 20),
+                        child: _isUploadingPicture
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                ),
+                              )
+                            : const Icon(Icons.camera_alt, color: Colors.white, size: 20),
                       ),
                     ),
                   ),

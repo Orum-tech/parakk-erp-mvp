@@ -1,8 +1,11 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:file_picker/file_picker.dart';
 import '../../services/homework_service.dart';
 import '../../services/auth_service.dart';
+import '../../services/storage_service.dart';
 
 class CreateHomeworkScreen extends StatefulWidget {
   const CreateHomeworkScreen({super.key});
@@ -15,6 +18,7 @@ class _CreateHomeworkScreenState extends State<CreateHomeworkScreen> {
   final _formKey = GlobalKey<FormState>();
   final _homeworkService = HomeworkService();
   final _authService = AuthService();
+  final _storageService = StorageService();
   
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _descController = TextEditingController();
@@ -25,6 +29,8 @@ class _CreateHomeworkScreenState extends State<CreateHomeworkScreen> {
   
   bool _isLoading = false;
   bool _isLoadingData = true;
+  bool _isUploadingFiles = false;
+  double _uploadProgress = 0.0;
   List<String> _availableClasses = [];
   final List<String> _availableSections = ['A', 'B', 'C', 'D'];
   List<String> _availableSubjects = [];
@@ -146,6 +152,70 @@ class _CreateHomeworkScreenState extends State<CreateHomeworkScreen> {
     super.dispose();
   }
 
+  Future<void> _selectAndUploadFiles() async {
+    try {
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.any,
+        allowMultiple: true,
+        withData: false,
+      );
+
+      if (result == null || result.files.isEmpty) return;
+
+      setState(() {
+        _isUploadingFiles = true;
+        _uploadProgress = 0.0;
+      });
+
+      final files = result.files
+          .where((file) => file.path != null)
+          .map((file) => File(file.path!))
+          .toList();
+
+      if (files.isEmpty) {
+        setState(() => _isUploadingFiles = false);
+        return;
+      }
+
+      // Upload files to Firebase Storage
+      final uploadedUrls = await _storageService.uploadFiles(
+        files: files,
+        path: 'homework_attachments',
+        onProgress: (current, total, progress) {
+          setState(() => _uploadProgress = progress);
+        },
+      );
+
+      setState(() {
+        _attachmentUrls.addAll(uploadedUrls);
+        _isUploadingFiles = false;
+        _uploadProgress = 0.0;
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${uploadedUrls.length} file(s) uploaded successfully'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      setState(() {
+        _isUploadingFiles = false;
+        _uploadProgress = 0.0;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error uploading files: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -260,14 +330,24 @@ class _CreateHomeworkScreenState extends State<CreateHomeworkScreen> {
                       const SizedBox(height: 10),
                     ],
                     OutlinedButton.icon(
-                      onPressed: () {
-                        // TODO: Implement file picker and upload
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text("File upload feature coming soon")),
-                        );
-                      },
-                      icon: const Icon(Icons.attach_file, color: Colors.teal),
-                      label: const Text("Attach File (Optional)", style: TextStyle(color: Colors.teal)),
+                      onPressed: _isUploadingFiles ? null : _selectAndUploadFiles,
+                      icon: _isUploadingFiles
+                          ? SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                value: _uploadProgress,
+                                valueColor: const AlwaysStoppedAnimation<Color>(Colors.teal),
+                              ),
+                            )
+                          : const Icon(Icons.attach_file, color: Colors.teal),
+                      label: Text(
+                        _isUploadingFiles
+                            ? 'Uploading... ${(_uploadProgress * 100).toStringAsFixed(0)}%'
+                            : "Attach File (Optional)",
+                        style: const TextStyle(color: Colors.teal),
+                      ),
                       style: OutlinedButton.styleFrom(
                         minimumSize: const Size(double.infinity, 50),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

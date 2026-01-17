@@ -6,6 +6,8 @@ import '../../models/student_model.dart';
 import '../../services/parent_service.dart';
 import '../../services/auth_service.dart';
 import '../role_selection_screen.dart';
+import '../forgot_password_screen.dart';
+import 'parent_help_support_screen.dart';
 
 class ParentProfileScreen extends StatefulWidget {
   const ParentProfileScreen({super.key});
@@ -209,9 +211,11 @@ class _ParentProfileScreenState extends State<ParentProfileScreen> {
             ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
+      body: SafeArea(
+        bottom: false,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 120), // Extra bottom padding for floating bottom nav
+          child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Profile Header Card
@@ -392,13 +396,12 @@ class _ParentProfileScreenState extends State<ParentProfileScreen> {
                     icon: Icons.lock_outline,
                     color: Colors.blue,
                     onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text("Password reset email will be sent to your registered email"),
-                          backgroundColor: Colors.blue,
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const ForgotPasswordScreen(),
                         ),
                       );
-                      // TODO: Implement password reset
                     },
                   ),
                   const Divider(height: 1),
@@ -407,9 +410,11 @@ class _ParentProfileScreenState extends State<ParentProfileScreen> {
                     icon: Icons.help_outline,
                     color: Colors.green,
                     onTap: () {
-                      // TODO: Navigate to help screen
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text("Help & Support coming soon")),
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const ParentHelpSupportScreen(),
+                        ),
                       );
                     },
                   ),
@@ -475,6 +480,7 @@ class _ParentProfileScreenState extends State<ParentProfileScreen> {
 
             const SizedBox(height: 20),
           ],
+        ),
         ),
       ),
     );

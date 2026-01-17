@@ -24,6 +24,7 @@ import 'teacher_features/help_support_screen.dart';
 // ==========================================================
 import 'teacher_features/school_notices_screen.dart';
 import 'teacher_features/parent_chat_screen.dart';
+import 'teacher_features/student_chat_screen.dart';
 
 // ==========================================================
 //                 3. IMPORTS: QUICK ACTIONS
@@ -42,6 +43,10 @@ import 'teacher_features/class_analytics_screen.dart';
 import 'teacher_features/syllabus_tracker_screen.dart';
 import 'teacher_features/events_screen.dart';
 import 'teacher_features/class_reports_screen.dart';
+import 'teacher_features/upload_video_screen.dart';
+import 'teacher_features/create_test_screen.dart';
+import 'teacher_features/notifications_screen.dart';
+import '../services/notification_service.dart';
 
 // ==========================================================
 //                 5. IMPORTS: MY CLASS HUB
@@ -51,6 +56,8 @@ import 'teacher_features/attendance_history_screen.dart';
 import 'teacher_features/leave_requests_screen.dart';
 import 'teacher_features/incident_log_screen.dart';
 import 'teacher_features/lesson_plan_screen.dart';
+import '../services/leave_request_service.dart';
+import '../models/leave_request_model.dart';
 
 // ==========================================================
 //          6. IMPORTS: STUDY HUB (Shared with Student)
@@ -84,6 +91,8 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
   final HomeworkService _homeworkService = HomeworkService();
   final MarksService _marksService = MarksService();
   final AuthService _authService = AuthService();
+  final LeaveRequestService _leaveRequestService = LeaveRequestService();
+  final NotificationService _notificationService = NotificationService();
 
   // Data state
   TeacherModel? _teacher;
@@ -95,6 +104,7 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
   int _lateCount = 0;
   TimetableModel? _nextClass;
   int _homeworkCount = 0;
+  int _pendingLeaveRequests = 0;
   bool _isLoading = true;
 
   @override
@@ -140,8 +150,11 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
       // Load next class
       await _loadNextClass();
 
-      // Load homework count
-      await _loadHomeworkCount();
+        // Load homework count
+        await _loadHomeworkCount();
+
+        // Load pending leave requests count
+        await _loadPendingLeaveRequests();
     } catch (e) {
       debugPrint('Error loading dashboard data: $e');
     } finally {
@@ -296,6 +309,18 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
     }
   }
 
+  Future<void> _loadPendingLeaveRequests() async {
+    if (_classTeacherClassId == null) return;
+    try {
+      final leaves = await _leaveRequestService.getClassLeaveRequests(_classTeacherClassId).first;
+      setState(() {
+        _pendingLeaveRequests = leaves.where((l) => l.status == LeaveStatus.pending).length;
+      });
+    } catch (e) {
+      debugPrint('Error loading pending leave requests: $e');
+    }
+  }
+
   String _getGreeting() {
     final hour = DateTime.now().hour;
     if (hour < 12) return 'Good Morning';
@@ -420,9 +445,44 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
                 )
               ],
             ),
-            child: IconButton(
-              onPressed: () => _openPlaceholder(context, "Notifications", Icons.notifications),
-              icon: Icon(Icons.notifications_outlined, color: Colors.grey[800], size: 24),
+            child: StreamBuilder<int>(
+              stream: _notificationService.getUnreadCount(),
+              builder: (context, snapshot) {
+                final unreadCount = snapshot.data ?? 0;
+                return Stack(
+                  children: [
+                    IconButton(
+                      onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (c) => const TeacherNotificationsScreen())),
+                      icon: Icon(Icons.notifications_outlined, color: Colors.grey[800], size: 24),
+                    ),
+                    if (unreadCount > 0)
+                      Positioned(
+                        right: 8,
+                        top: 8,
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: const BoxDecoration(
+                            color: Colors.red,
+                            shape: BoxShape.circle,
+                          ),
+                          constraints: const BoxConstraints(
+                            minWidth: 16,
+                            minHeight: 16,
+                          ),
+                          child: Text(
+                            unreadCount > 99 ? '99+' : '$unreadCount',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      ),
+                  ],
+                );
+              },
             ),
           ),
         ],
@@ -759,55 +819,97 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
             )
           ),
           const SizedBox(height: 15),
-          GridView.count(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            crossAxisCount: 3,
-            childAspectRatio: 1.0,
-            mainAxisSpacing: 15,
-            crossAxisSpacing: 15,
+          // Row 1: Upload Notes, Upload Video, Create Test
+          Row(
             children: [
-              _buildGridTile(
-                "Upload\nNotes", 
-                Icons.cloud_upload_rounded, 
-                Colors.indigo, 
-                () => Navigator.push(context, MaterialPageRoute(builder: (c) => const UploadNotesScreen()))
+              Expanded(
+                child: _buildGridTile(
+                  "Upload\nNotes", 
+                  Icons.cloud_upload_rounded, 
+                  Colors.indigo, 
+                  () => Navigator.push(context, MaterialPageRoute(builder: (c) => const UploadNotesScreen()))
+                ),
               ),
-              _buildGridTile(
-                "Behaviour\nLog", 
-                Icons.psychology_rounded, 
-                Colors.teal, 
-                () => Navigator.push(context, MaterialPageRoute(builder: (c) => const BehaviourLogScreen()))
+              const SizedBox(width: 15),
+              Expanded(
+                child: _buildGridTile(
+                  "Upload\nVideo", 
+                  Icons.video_library_rounded, 
+                  Colors.red, 
+                  () => Navigator.push(context, MaterialPageRoute(builder: (c) => const UploadVideoScreen()))
+                ),
               ),
-              _buildGridTile(
-                "Parent\nChat", 
-                Icons.chat_bubble_rounded, 
-                Colors.deepOrange, 
-                () => Navigator.push(context, MaterialPageRoute(builder: (c) => const ParentChatScreen()))
+              const SizedBox(width: 15),
+              Expanded(
+                child: _buildGridTile(
+                  "Create\nTest", 
+                  Icons.quiz_rounded, 
+                  Colors.green, 
+                  () => Navigator.push(context, MaterialPageRoute(builder: (c) => const CreateTestScreen()))
+                ),
               ),
-              _buildGridTile(
-                "Analytics", 
-                Icons.pie_chart_rounded, 
-                Colors.blueGrey, 
-                () => Navigator.push(context, MaterialPageRoute(builder: (c) => const ClassAnalyticsScreen()))
+            ],
+          ),
+          const SizedBox(height: 15),
+          // Row 2: Other items (Behaviour Log, Analytics, Syllabus, Reports, Events)
+          Row(
+            children: [
+              Expanded(
+                child: _buildGridTile(
+                  "Behaviour\nLog", 
+                  Icons.psychology_rounded, 
+                  Colors.teal, 
+                  () => Navigator.push(context, MaterialPageRoute(builder: (c) => const BehaviourLogScreen()))
+                ),
               ),
-              _buildGridTile(
-                "Syllabus", 
-                Icons.menu_book_rounded, 
-                Colors.brown, 
-                () => Navigator.push(context, MaterialPageRoute(builder: (c) => const SyllabusTrackerScreen()))
+              const SizedBox(width: 15),
+              Expanded(
+                child: _buildGridTile(
+                  "Analytics", 
+                  Icons.pie_chart_rounded, 
+                  Colors.blueGrey, 
+                  () => Navigator.push(context, MaterialPageRoute(builder: (c) => const ClassAnalyticsScreen()))
+                ),
               ),
-              _buildGridTile(
-                "Reports", 
-                Icons.description_rounded, 
-                Colors.redAccent, 
-                () => Navigator.push(context, MaterialPageRoute(builder: (c) => const ClassReportsScreen()))
+              const SizedBox(width: 15),
+              Expanded(
+                child: _buildGridTile(
+                  "Syllabus", 
+                  Icons.menu_book_rounded, 
+                  Colors.brown, 
+                  () => Navigator.push(context, MaterialPageRoute(builder: (c) => const SyllabusTrackerScreen()))
+                ),
               ),
-              _buildGridTile(
-                "Events", 
-                Icons.event_available_rounded, 
-                Colors.pink, 
-                () => Navigator.push(context, MaterialPageRoute(builder: (c) => const EventsScreen()))
+            ],
+          ),
+          const SizedBox(height: 15),
+          Row(
+            children: [
+              Expanded(
+                child: _buildGridTile(
+                  "Resources", 
+                  Icons.folder_rounded, 
+                  Colors.orange, 
+                  () => Navigator.push(context, MaterialPageRoute(builder: (c) => const SavedResourcesScreen()))
+                ),
+              ),
+              const SizedBox(width: 15),
+              Expanded(
+                child: _buildGridTile(
+                  "Reports", 
+                  Icons.description_rounded, 
+                  Colors.redAccent, 
+                  () => Navigator.push(context, MaterialPageRoute(builder: (c) => const ClassReportsScreen()))
+                ),
+              ),
+              const SizedBox(width: 15),
+              Expanded(
+                child: _buildGridTile(
+                  "Events", 
+                  Icons.event_available_rounded, 
+                  Colors.pink, 
+                  () => Navigator.push(context, MaterialPageRoute(builder: (c) => const EventsScreen()))
+                ),
               ),
             ],
           ),
@@ -898,7 +1000,7 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
         ),
         _buildListTile(
           "Leave Requests", 
-          "2 Pending approvals", 
+          "$_pendingLeaveRequests Pending approval${_pendingLeaveRequests != 1 ? 's' : ''}", 
           Icons.mail_outline, 
           Colors.purple, 
           () => Navigator.push(context, MaterialPageRoute(builder: (c) => const LeaveRequestsScreen()))
@@ -955,6 +1057,16 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
           Icons.forum, 
           Colors.green[700]!, 
           () => Navigator.push(context, MaterialPageRoute(builder: (c) => const ParentChatScreen()))
+        ),
+        
+        const SizedBox(height: 15),
+        
+        _buildBigCard(
+          "Student Messages", 
+          "Chat with students in your class", 
+          Icons.message, 
+          Colors.blue[700]!, 
+          () => Navigator.push(context, MaterialPageRoute(builder: (c) => const StudentChatScreen()))
         ),
         
         const SizedBox(height: 100),

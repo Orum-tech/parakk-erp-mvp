@@ -1,9 +1,11 @@
+import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/marks_model.dart';
 import '../models/exam_model.dart';
 import '../models/student_model.dart';
 import '../models/teacher_model.dart';
+import 'notification_service.dart';
 
 class MarksService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -257,8 +259,105 @@ class MarksService {
       }
 
       await batch.commit();
+
+      // Create notifications for students whose marks were entered
+      try {
+        final notificationService = NotificationService();
+        for (var entry in studentMarks.entries) {
+          await notificationService.notifyMarksEntered(
+            studentId: entry.key,
+            examName: examName,
+            subjectName: subjectName,
+            examId: examId,
+          );
+        }
+      } catch (e) {
+        // Don't fail marks entry if notification fails
+        debugPrint('Error creating notifications: $e');
+      }
     } catch (e) {
       throw Exception('Failed to save marks: $e');
+    }
+  }
+
+  // Get all marks for a specific exam in a class (for rank calculation)
+  Future<List<MarksModel>> getExamMarksForClass(String examId, String classId) async {
+    try {
+      Query query = _firestore
+          .collection('marks')
+          .where('classId', isEqualTo: classId);
+
+      // If examId is provided, filter by it
+      if (examId.isNotEmpty) {
+        query = query.where('examId', isEqualTo: examId);
+      }
+
+      final snapshot = await query.get();
+
+      return snapshot.docs
+          .map((doc) => MarksModel.fromDocument(doc))
+          .toList();
+    } catch (e) {
+      throw Exception('Failed to fetch exam marks: $e');
+    }
+  }
+
+  // Calculate rank for a student in a specific exam
+  Future<int> calculateStudentRank(String studentId, String examId, String classId) async {
+    try {
+      // Get all marks for this exam in the class
+      final allMarks = await getExamMarksForClass(examId, classId);
+
+      if (allMarks.isEmpty) return 0;
+
+      // Group marks by student and calculate total percentage
+      final Map<String, List<MarksModel>> marksByStudent = {};
+      for (var mark in allMarks) {
+        if (!marksByStudent.containsKey(mark.studentId)) {
+          marksByStudent[mark.studentId] = [];
+        }
+        marksByStudent[mark.studentId]!.add(mark);
+      }
+
+      // Calculate total percentage for each student
+      final List<Map<String, dynamic>> studentScores = [];
+      for (var entry in marksByStudent.entries) {
+        final studentMarks = entry.value;
+        double totalMarks = 0;
+        double maxTotalMarks = 0;
+
+        for (var mark in studentMarks) {
+          totalMarks += mark.marksObtained;
+          maxTotalMarks += mark.maxMarks;
+        }
+
+        final percentage = maxTotalMarks > 0 ? (totalMarks / maxTotalMarks) * 100 : 0.0;
+
+        studentScores.add({
+          'studentId': entry.key,
+          'percentage': percentage,
+          'totalMarks': totalMarks,
+          'maxTotalMarks': maxTotalMarks,
+        });
+      }
+
+      // Sort by percentage (descending), then by total marks (descending)
+      studentScores.sort((a, b) {
+        final pctCompare = (b['percentage'] as double).compareTo(a['percentage'] as double);
+        if (pctCompare != 0) return pctCompare;
+        return (b['totalMarks'] as double).compareTo(a['totalMarks'] as double);
+      });
+
+      // Find the rank of the current student
+      for (int i = 0; i < studentScores.length; i++) {
+        if (studentScores[i]['studentId'] == studentId) {
+          return i + 1; // Rank is 1-based
+        }
+      }
+
+      return 0; // Student not found
+    } catch (e) {
+      throw Exception('Failed to calculate rank: $e');
     }
   }
 
