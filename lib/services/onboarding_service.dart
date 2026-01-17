@@ -19,6 +19,32 @@ class OnboardingService {
         return data['classId'] != null && data['rollNumber'] != null;
       } else if (role == 'Teacher') {
         return data['employeeId'] != null && data['subjects'] != null && (data['subjects'] as List).isNotEmpty;
+      } else if (role == 'Parent' || role == 'parent') {
+        // For parents, check if they have seen the link child screen
+        // If they have children linked or have seen the screen, onboarding is complete
+        final hasSeenLinkScreen = data['hasSeenLinkChildScreen'] == true;
+        if (hasSeenLinkScreen) {
+          return true;
+        }
+        // Check if they have children linked
+        try {
+          final childrenQuery = await FirebaseFirestore.instance
+              .collection('users')
+              .where('role', isEqualTo: 'Student')
+              .where('parentId', isEqualTo: uid)
+              .limit(1)
+              .get();
+          if (childrenQuery.docs.isNotEmpty) {
+            // Mark as seen and return true
+            await FirebaseFirestore.instance.collection('users').doc(uid).update({
+              'hasSeenLinkChildScreen': true,
+            });
+            return true;
+          }
+        } catch (e) {
+          // If query fails, just return false to show link screen
+        }
+        return false;
       }
       
       return false;

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
-import '../../models/student_model.dart';
 import '../../services/attendance_service.dart';
 import '../../services/chat_service.dart';
 import 'parent_chat_detail_screen.dart';

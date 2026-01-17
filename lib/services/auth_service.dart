@@ -51,6 +51,7 @@ class AuthService {
   Future<UserModel?> login({
     required String email,
     required String password,
+    UserRole? expectedRole,
   }) async {
     try {
       final UserCredential userCredential = await _auth.signInWithEmailAndPassword(
@@ -64,14 +65,44 @@ class AuthService {
       final doc = await _firestore.collection('users').doc(uid).get();
       
       if (doc.exists) {
-        return UserModel.fromDocument(doc);
+        final userModel = UserModel.fromDocument(doc);
+        
+        // Validate role if expectedRole is provided
+        if (expectedRole != null && userModel.role != expectedRole) {
+          // Sign out the user since role doesn't match
+          await _auth.signOut();
+          
+          // Get the actual role string for error message
+          final actualRoleString = userModel.roleString;
+          final expectedRoleString = _roleToString(expectedRole);
+          
+          throw Exception('You are a $actualRoleString. Please change role and try to login as $actualRoleString.');
+        }
+        
+        return userModel;
       } else {
         throw Exception('User data not found');
       }
     } on FirebaseAuthException catch (e) {
       throw _handleAuthException(e);
     } catch (e) {
+      // Re-throw if it's already an Exception with a message
+      if (e is Exception) {
+        rethrow;
+      }
       throw Exception('An unexpected error occurred: $e');
+    }
+  }
+
+  // Helper method to convert UserRole enum to string
+  String _roleToString(UserRole role) {
+    switch (role) {
+      case UserRole.student:
+        return 'Student';
+      case UserRole.teacher:
+        return 'Teacher';
+      case UserRole.parent:
+        return 'Parent';
     }
   }
 

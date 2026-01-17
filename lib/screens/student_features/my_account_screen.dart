@@ -359,6 +359,72 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
               maxLines: 2,
             ),
 
+            const SizedBox(height: 30),
+
+            // Parent Information Section
+            if (_student?.parentName != null || _student?.parentEmail != null) ...[
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: const Color(0xFF1565C0).withOpacity(0.2)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.grey.withOpacity(0.05),
+                      blurRadius: 10,
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF1565C0).withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(
+                            Icons.family_restroom,
+                            color: Color(0xFF1565C0),
+                            size: 20,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        const Text(
+                          "Parent Information",
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+                    if (_student?.parentName != null)
+                      _buildParentInfoField(
+                        "Parent Name",
+                        _student!.parentName!,
+                        Icons.person_outline,
+                      ),
+                    if (_student?.parentName != null && _student?.parentEmail != null)
+                      const SizedBox(height: 15),
+                    if (_student?.parentEmail != null)
+                      _buildParentInfoField(
+                        "Parent Email",
+                        _student!.parentEmail!,
+                        Icons.email_outlined,
+                      ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+            ],
+
             const SizedBox(height: 20),
             SizedBox(
               width: double.infinity,
@@ -455,6 +521,39 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildParentInfoField(String label, String value, IconData icon) {
+    return Row(
+      children: [
+        Icon(icon, color: const Color(0xFF1565C0), size: 20),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey[600],
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black87,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

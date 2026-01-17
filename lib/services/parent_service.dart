@@ -307,4 +307,68 @@ class ParentService {
       return null;
     }
   }
+
+  // Link a child (student) to parent by email
+  Future<void> linkChildByEmail(String childEmail) async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null) throw Exception('User not authenticated');
+
+      // Find student with matching email
+      QuerySnapshot studentQuery;
+      
+      try {
+        studentQuery = await _firestore
+            .collection('users')
+            .where('role', isEqualTo: 'Student')
+            .where('email', isEqualTo: childEmail.toLowerCase())
+            .limit(1)
+            .get();
+      } catch (e) {
+        // Fallback to lowercase 'student'
+        studentQuery = await _firestore
+            .collection('users')
+            .where('role', isEqualTo: 'student')
+            .where('email', isEqualTo: childEmail.toLowerCase())
+            .limit(1)
+            .get();
+      }
+
+      if (studentQuery.docs.isEmpty) {
+        throw Exception('No student found with this email. Please make sure your child has signed up with this email address.');
+      }
+
+      final studentDoc = studentQuery.docs.first;
+      final studentData = studentDoc.data() as Map<String, dynamic>;
+      
+      // Check if student already has a parent linked
+      final existingParentId = studentData['parentId'] as String?;
+      if (existingParentId != null && existingParentId.isNotEmpty) {
+        if (existingParentId == user.uid) {
+          throw Exception('This child is already linked to your account.');
+        } else {
+          throw Exception('This child is already linked to another parent account.');
+        }
+      }
+
+      // Get parent data
+      final parentDoc = await _firestore.collection('users').doc(user.uid).get();
+      if (!parentDoc.exists) throw Exception('Parent account not found');
+      
+      final parentData = parentDoc.data()!;
+      final parentName = parentData['name'] ?? '';
+
+      // Link student to parent
+      await _firestore.collection('users').doc(studentDoc.id).update({
+        'parentId': user.uid,
+        'parentName': parentName,
+        'parentEmail': user.email,
+      });
+    } catch (e) {
+      if (e.toString().contains('Exception:')) {
+        rethrow;
+      }
+      throw Exception('Failed to link child: $e');
+    }
+  }
 }

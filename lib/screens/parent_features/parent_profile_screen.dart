@@ -8,6 +8,7 @@ import '../../services/auth_service.dart';
 import '../role_selection_screen.dart';
 import '../forgot_password_screen.dart';
 import 'parent_help_support_screen.dart';
+import 'link_child_screen.dart';
 
 class ParentProfileScreen extends StatefulWidget {
   const ParentProfileScreen({super.key});
@@ -364,6 +365,89 @@ class _ParentProfileScreenState extends State<ParentProfileScreen> {
               )
             else
               ..._children.map((child) => _buildChildCard(child)),
+
+            // Link More Children Button
+            const SizedBox(height: 15),
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: const Color(0xFF1E40AF).withOpacity(0.3), width: 1.5),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.grey.withOpacity(0.05),
+                    blurRadius: 10,
+                  ),
+                ],
+              ),
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: () async {
+                    // Navigate to link child screen
+                    final result = await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const LinkChildScreen(isFromProfile: true),
+                      ),
+                    );
+                    // Reload children list when returning from link screen
+                    if (mounted) {
+                      await _loadParentData();
+                    }
+                  },
+                  borderRadius: BorderRadius.circular(20),
+                  child: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF1E40AF).withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(
+                            Icons.add_circle_outline,
+                            color: Color(0xFF1E40AF),
+                            size: 24,
+                          ),
+                        ),
+                        const SizedBox(width: 15),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                "Link More Children",
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF1E40AF),
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                "Add another child to your account",
+                                style: TextStyle(
+                                  color: Colors.grey[600],
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Icon(
+                          Icons.arrow_forward_ios,
+                          color: const Color(0xFF1E40AF).withOpacity(0.6),
+                          size: 18,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
 
             const SizedBox(height: 30),
 

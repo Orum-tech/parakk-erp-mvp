@@ -700,7 +700,7 @@ class _ClassSettingsScreenState extends State<ClassSettingsScreen> {
       onChanged: onChanged,
       title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
       subtitle: Text(subtitle, style: TextStyle(color: Colors.grey[600], fontSize: 12)),
-      activeColor: const Color(0xFF00897B),
+      activeThumbColor: const Color(0xFF00897B),
     );
   }
 }

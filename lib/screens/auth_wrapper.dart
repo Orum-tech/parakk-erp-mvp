@@ -9,6 +9,7 @@ import 'teacher_dashboard.dart';
 import 'parent_dashboard.dart';
 import 'student_onboarding_screen.dart';
 import 'teacher_onboarding_screen.dart';
+import 'parent_features/link_child_screen.dart';
 
 class AuthWrapper extends StatelessWidget {
   const AuthWrapper({super.key});
@@ -71,6 +72,9 @@ class AuthWrapper extends StatelessWidget {
                         return const StudentOnboardingScreen();
                       } else if (user.role == UserRole.teacher) {
                         return const TeacherOnboardingScreen();
+                      } else if (user.role == UserRole.parent) {
+                        // Show link child screen for parents (optional onboarding)
+                        return const LinkChildScreen();
                       }
                     }
 

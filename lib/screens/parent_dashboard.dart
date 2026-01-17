@@ -20,6 +20,7 @@ import 'parent_features/leave_request_screen.dart';
 import 'parent_features/notifications_screen.dart';
 import '../services/notification_service.dart';
 import 'placeholder_screen.dart';
+import 'role_selection_screen.dart';
 
 class ParentDashboard extends StatefulWidget {
   const ParentDashboard({super.key});
@@ -167,15 +168,78 @@ class _ParentDashboardState extends State<ParentDashboard> {
           iconTheme: const IconThemeData(color: Colors.black),
         ),
         body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.child_care_outlined, size: 64, color: Colors.grey[400]),
-              const SizedBox(height: 16),
-              const Text('No children linked to your account', style: TextStyle(color: Colors.grey, fontSize: 16)),
-              const SizedBox(height: 8),
-              const Text('Please contact the school to link your children', style: TextStyle(color: Colors.grey, fontSize: 12)),
-            ],
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.child_care_outlined, size: 64, color: Colors.grey[400]),
+                const SizedBox(height: 16),
+                const Text('No children linked to your account', style: TextStyle(color: Colors.grey, fontSize: 16)),
+                const SizedBox(height: 8),
+                const Text('Please contact the school to link your children', style: TextStyle(color: Colors.grey, fontSize: 12)),
+                const SizedBox(height: 40),
+                SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: ElevatedButton(
+                    onPressed: () async {
+                      final confirmed = await showDialog<bool>(
+                        context: context,
+                        builder: (ctx) => AlertDialog(
+                          title: const Text("Logout"),
+                          content: const Text("Are you sure you want to logout?"),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(ctx, false),
+                              child: const Text("Cancel"),
+                            ),
+                            ElevatedButton(
+                              onPressed: () => Navigator.pop(ctx, true),
+                              style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
+                              child: const Text("Logout"),
+                            ),
+                          ],
+                        ),
+                      );
+
+                      if (confirmed == true) {
+                        await _authService.logout();
+                        if (mounted) {
+                          Navigator.pushAndRemoveUntil(
+                            context,
+                            MaterialPageRoute(builder: (c) => const RoleSelectionScreen()),
+                            (route) => false,
+                          );
+                        }
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                    child: const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.logout, size: 20),
+                        SizedBox(width: 8),
+                        Text(
+                          "Logout",
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       );

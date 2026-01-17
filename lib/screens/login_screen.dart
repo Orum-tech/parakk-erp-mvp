@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
+import '../models/user_model.dart';
 import 'role_selection_screen.dart';
 import 'signup_screen.dart';
 import 'auth_wrapper.dart';
@@ -38,10 +39,25 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _isLoading = true);
 
     try {
-      // Call login service
+      // Convert string role to UserRole enum
+      UserRole? expectedRole;
+      switch (widget.userRole.toLowerCase()) {
+        case 'student':
+          expectedRole = UserRole.student;
+          break;
+        case 'teacher':
+          expectedRole = UserRole.teacher;
+          break;
+        case 'parent':
+          expectedRole = UserRole.parent;
+          break;
+      }
+
+      // Call login service with role validation
       final user = await AuthService().login(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
+        expectedRole: expectedRole,
       );
 
       // Show success message
@@ -67,6 +83,7 @@ class _LoginScreenState extends State<LoginScreen> {
           SnackBar(
             content: Text(e.toString().replaceFirst('Exception: ', '')),
             backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
           ),
         );
       }
