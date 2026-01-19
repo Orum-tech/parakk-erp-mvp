@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
+import '../services/localization_service.dart';
 import '../models/user_model.dart';
 import 'role_selection_screen.dart';
 import 'signup_screen.dart';
@@ -95,6 +96,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context);
+    
     return Scaffold(
       backgroundColor: Colors.white,
       body: SingleChildScrollView(
@@ -158,7 +161,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          "${widget.userRole} Login",
+                          "${widget.userRole} ${loc.login}",
                           style: TextStyle(
                             fontSize: 18,
                             color: Colors.white.withOpacity(0.9),
@@ -182,7 +185,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     // Email
                     _buildAestheticTextField(
                       controller: _emailController,
-                      label: "Email ID",
+                      label: loc.email,
                       icon: Icons.email_outlined,
                       primaryColor: primaryBlue,
                       keyboardType: TextInputType.emailAddress,
@@ -193,7 +196,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     // Password
                     _buildAestheticTextField(
                       controller: _passwordController,
-                      label: "Password",
+                      label: loc.password,
                       icon: Icons.lock_outline_rounded,
                       primaryColor: primaryBlue,
                       isPassword: true,
@@ -218,7 +221,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 );
                               },
                         child: Text(
-                          "Forgot Password?",
+                          loc.forgotPassword,
                           style: TextStyle(
                             color: primaryBlue,
                             fontWeight: FontWeight.bold,
@@ -253,9 +256,9 @@ class _LoginScreenState extends State<LoginScreen> {
                                   strokeWidth: 2,
                                 ),
                               )
-                            : const Text(
-                                "Sign In",
-                                style: TextStyle(
+                            : Text(
+                                loc.login,
+                                style: const TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
                                   color: Colors.white,
@@ -271,7 +274,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Text("Don't have an account? ", style: TextStyle(color: Colors.grey[600])),
+                        Text("${loc.dontHaveAccount} ", style: TextStyle(color: Colors.grey[600])),
                         GestureDetector(
                           onTap: _isLoading
                               ? null
@@ -284,7 +287,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   );
                                 },
                           child: Text(
-                            "Sign Up",
+                            loc.signup,
                             style: TextStyle(
                               color: primaryBlue,
                               fontWeight: FontWeight.bold,

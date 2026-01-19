@@ -4,7 +4,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../services/class_settings_service.dart';
 import '../../services/attendance_service.dart';
 import '../../models/class_model.dart';
-import '../../models/teacher_model.dart';
 
 class ClassSettingsScreen extends StatefulWidget {
   const ClassSettingsScreen({super.key});

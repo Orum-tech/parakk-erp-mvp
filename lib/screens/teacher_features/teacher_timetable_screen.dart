@@ -431,9 +431,9 @@ class _TeacherTimetableScreenState extends State<TeacherTimetableScreen> {
           );
         }
 
-        return ListView(
-          padding: const EdgeInsets.all(20),
-          children: [
+    return ListView(
+      padding: const EdgeInsets.all(20),
+      children: [
             ...dayEntries.map((entry) => _buildPeriodCard(entry)),
             if (_isEditMode && dayEntries.isNotEmpty)
               Padding(
@@ -471,8 +471,8 @@ class _TeacherTimetableScreenState extends State<TeacherTimetableScreen> {
         children: [
           Expanded(
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
                 Row(
                   children: [
                     Text(
@@ -499,11 +499,11 @@ class _TeacherTimetableScreenState extends State<TeacherTimetableScreen> {
                       ),
                   ],
                 ),
-                const SizedBox(height: 5),
-                Row(
-                  children: [
-                    const Icon(Icons.access_time, size: 14, color: Colors.grey),
-                    const SizedBox(width: 5),
+              const SizedBox(height: 5),
+              Row(
+                children: [
+                  const Icon(Icons.access_time, size: 14, color: Colors.grey),
+                  const SizedBox(width: 5),
                     Text(timeStr, style: const TextStyle(color: Colors.grey, fontSize: 12)),
                     if (entry.room != null) ...[
                       const SizedBox(width: 15),

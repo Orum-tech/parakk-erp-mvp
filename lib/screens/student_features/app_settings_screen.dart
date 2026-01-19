@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../services/settings_service.dart';
+import '../../services/theme_service.dart';
+import '../../services/localization_service.dart';
 
 class AppSettingsScreen extends StatefulWidget {
   const AppSettingsScreen({super.key});
@@ -10,6 +12,8 @@ class AppSettingsScreen extends StatefulWidget {
 
 class _AppSettingsScreenState extends State<AppSettingsScreen> {
   final SettingsService _settingsService = SettingsService();
+  final ThemeService _themeService = ThemeService();
+  final LocalizationService _localizationService = LocalizationService();
   
   bool _notifications = true;
   bool _darkMode = false;
@@ -28,7 +32,7 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
     setState(() => _isLoading = true);
     try {
       final notifications = await _settingsService.getNotificationsEnabled();
-      final darkMode = await _settingsService.getDarkModeEnabled();
+      final darkMode = _themeService.isDarkMode; // Get from ThemeService for consistency
       final biometric = await _settingsService.getBiometricEnabled();
       final language = await _settingsService.getSelectedLanguage();
       final biometricAvailable = await _settingsService.isBiometricAvailable();
@@ -66,34 +70,46 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
 
   Future<void> _handleDarkModeChanged(bool value) async {
     setState(() => _darkMode = value);
-    await _settingsService.setDarkModeEnabled(value);
+    await _themeService.setDarkMode(value);
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(value ? 'Dark mode enabled. Restart app to apply.' : 'Dark mode disabled. Restart app to apply.'),
-          duration: const Duration(seconds: 2),
+          content: Text(value ? 'Dark mode enabled' : 'Dark mode disabled'),
+          duration: const Duration(seconds: 1),
+          backgroundColor: Colors.green,
         ),
       );
     }
   }
 
   Future<void> _handleBiometricChanged(bool value) async {
+    // Don't update state immediately - wait for authentication result
     if (value) {
       // Test biometric authentication before enabling
-      final authenticated = await _settingsService.authenticateWithBiometric();
-      if (!authenticated) {
+      final result = await _settingsService.authenticateWithBiometric();
+      if (!result['success']) {
+        // Keep switch off since authentication failed
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Biometric authentication failed'),
-              backgroundColor: Colors.red,
-            ),
-          );
+          final errorMsg = result['error'] ?? 'Biometric authentication failed';
+          // Only show error if it's not a user cancellation
+          if (!errorMsg.toLowerCase().contains('cancelled')) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(errorMsg),
+                backgroundColor: Colors.red,
+                duration: const Duration(seconds: 3),
+              ),
+            );
+          }
+          // Ensure switch is off
+          setState(() => _biometric = false);
         }
         return;
       }
+      // Authentication successful, proceed to enable
     }
     
+    // Update state and save preference
     setState(() => _biometric = value);
     await _settingsService.setBiometricEnabled(value);
     if (mounted) {
@@ -101,6 +117,7 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
         SnackBar(
           content: Text(value ? 'Biometric authentication enabled' : 'Biometric authentication disabled'),
           duration: const Duration(seconds: 1),
+          backgroundColor: Colors.green,
         ),
       );
     }
@@ -143,6 +160,8 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
     if (selected != null && selected != _selectedLanguage) {
       setState(() => _selectedLanguage = selected);
       await _settingsService.setSelectedLanguage(selected);
+      // Update app language
+      await _localizationService.setLanguage(selected);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -156,11 +175,13 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context);
+    
     if (_isLoading) {
       return Scaffold(
         backgroundColor: const Color(0xFFF4F6F9),
         appBar: AppBar(
-          title: const Text("Settings", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+          title: Text(localizations.settings, style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
           backgroundColor: Colors.white,
           elevation: 0,
           iconTheme: const IconThemeData(color: Colors.black),
@@ -172,7 +193,7 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF4F6F9),
       appBar: AppBar(
-        title: const Text("Settings", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+        title: Text(localizations.settings, style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
         backgroundColor: Colors.white,
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.black),
@@ -180,33 +201,35 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
-          const Text("General", style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.grey)),
+          Text(localizations.general, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.grey)),
           const SizedBox(height: 10),
           _buildSwitchTile(
-            "Push Notifications",
-            "Get updates about homework & exams",
+            localizations.pushNotifications,
+            localizations.notificationsDesc,
             _notifications,
             _handleNotificationsChanged,
           ),
           _buildSwitchTile(
-            "Dark Mode",
-            "Switch to dark theme",
+            localizations.darkMode,
+            localizations.darkModeDesc,
             _darkMode,
             _handleDarkModeChanged,
           ),
           _buildSwitchTile(
-            "Face ID / Fingerprint",
-            _biometricAvailable ? "Secure login with biometric" : "Biometric not available on this device",
+            localizations.biometric,
+            _biometricAvailable 
+                ? localizations.biometricDesc
+                : localizations.biometricUnavailable,
             _biometric,
             _handleBiometricChanged,
             enabled: _biometricAvailable,
           ),
 
           const SizedBox(height: 30),
-          const Text("Preferences", style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.grey)),
+          Text(localizations.preferences, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.grey)),
           const SizedBox(height: 10),
           _buildActionTile(
-            "Change Language",
+            localizations.changeLanguage,
             Icons.language,
             _showLanguageSelector,
             subtitle: _settingsService.getAvailableLanguages()
@@ -229,8 +252,9 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
       child: SwitchListTile(
         activeThumbColor: const Color(0xFF1565C0),
+        activeTrackColor: const Color(0xFF1565C0).withOpacity(0.5),
         title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
-        subtitle: Text(subtitle, style: const TextStyle(fontSize: 12)),
+        subtitle: Text(subtitle, style: TextStyle(fontSize: 12, color: enabled ? Colors.grey[600] : Colors.grey[400])),
         value: value,
         onChanged: enabled ? onChanged : null,
       ),

@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:local_auth/local_auth.dart';
 
@@ -45,27 +47,83 @@ class SettingsService {
   // Check if biometric is available
   Future<bool> isBiometricAvailable() async {
     try {
-      return await _localAuth.canCheckBiometrics || await _localAuth.isDeviceSupported();
+      // First check if device supports biometrics
+      final isSupported = await _localAuth.isDeviceSupported();
+      if (!isSupported) {
+        return false;
+      }
+      
+      // Check available biometric types
+      final availableBiometrics = await _localAuth.getAvailableBiometrics();
+      return availableBiometrics.isNotEmpty;
     } catch (e) {
+      debugPrint('Error checking biometric availability: $e');
       return false;
     }
   }
 
   // Authenticate with biometric
-  Future<bool> authenticateWithBiometric() async {
+  Future<Map<String, dynamic>> authenticateWithBiometric() async {
     try {
       final isAvailable = await isBiometricAvailable();
-      if (!isAvailable) return false;
+      if (!isAvailable) {
+        return {
+          'success': false,
+          'error': 'Biometric authentication is not available on this device',
+        };
+      }
 
-      return await _localAuth.authenticate(
-        localizedReason: 'Please authenticate to continue',
+      final authenticated = await _localAuth.authenticate(
+        localizedReason: 'Please authenticate to enable biometric login',
         options: const AuthenticationOptions(
-          biometricOnly: true,
+          biometricOnly: false, // Allow fallback to device PIN/password
           stickyAuth: true,
+          useErrorDialogs: true,
         ),
       );
+      
+      if (authenticated) {
+        return {'success': true};
+      } else {
+        return {
+          'success': false,
+          'error': 'Authentication was cancelled or failed',
+        };
+      }
+    } on PlatformException catch (e) {
+      String errorMessage = 'Biometric authentication failed';
+      
+      switch (e.code) {
+        case 'NotAvailable':
+          errorMessage = 'Biometric authentication is not available';
+          break;
+        case 'NotEnrolled':
+          errorMessage = 'No biometrics enrolled. Please set up Face ID or Fingerprint in device settings';
+          break;
+        case 'LockedOut':
+          errorMessage = 'Biometric authentication is locked. Please unlock your device';
+          break;
+        case 'PermanentlyLockedOut':
+          errorMessage = 'Biometric authentication is permanently locked. Please use device PIN/password';
+          break;
+        case 'UserCancel':
+          errorMessage = 'Authentication was cancelled';
+          break;
+        default:
+          errorMessage = 'Authentication failed: ${e.message ?? e.code}';
+      }
+      
+      debugPrint('Biometric authentication error: ${e.code} - ${e.message}');
+      return {
+        'success': false,
+        'error': errorMessage,
+      };
     } catch (e) {
-      return false;
+      debugPrint('Unexpected biometric error: $e');
+      return {
+        'success': false,
+        'error': 'An unexpected error occurred: $e',
+      };
     }
   }
 
@@ -85,9 +143,6 @@ class SettingsService {
     return [
       {'code': 'en', 'name': 'English'},
       {'code': 'hi', 'name': 'हिंदी (Hindi)'},
-      {'code': 'es', 'name': 'Español (Spanish)'},
-      {'code': 'fr', 'name': 'Français (French)'},
-      {'code': 'de', 'name': 'Deutsch (German)'},
     ];
   }
 }

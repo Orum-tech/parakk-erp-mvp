@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../models/student_model.dart';
 import '../../services/parent_service.dart';
+import 'chat_detail_screen.dart';
 
 class SupportScreen extends StatefulWidget {
   const SupportScreen({super.key});
@@ -156,19 +157,13 @@ class _SupportScreenState extends State<SupportScreen> {
             const Text("How can we help you?", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
             const SizedBox(height: 20),
             
-            // Class Teacher Contact
+            // Class Teacher Contact Card
             if (_classTeacherInfo != null && _classTeacherInfo!['email'] != null)
-              _buildSupportOption(
-                "Contact Class Teacher",
-                _classTeacherInfo!['teacherName'] ?? 'Class Teacher',
-                Icons.person,
-                Colors.blue,
-                () {
-                  _sendEmail(
-                    _classTeacherInfo!['email']!,
-                    subject: 'Inquiry from ${_student?.name ?? 'Student'} - ${_student?.className ?? 'N/A'}',
-                  );
-                },
+              _buildClassTeacherCard(
+                teacherName: _classTeacherInfo!['teacherName'] ?? 'Class Teacher',
+                email: _classTeacherInfo!['email']!,
+                phone: _classTeacherInfo!['phone'] ?? '',
+                teacherId: _classTeacherInfo!['teacherId'] ?? '',
               ),
 
             // School Admin Contact
@@ -278,6 +273,154 @@ class _SupportScreenState extends State<SupportScreen> {
             ),
           )
         ],
+      ),
+    );
+  }
+
+  Widget _buildClassTeacherCard({
+    required String teacherName,
+    required String email,
+    required String phone,
+    required String teacherId,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.blue.withOpacity(0.2), width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.blue.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.person, color: Colors.blue, size: 28),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        "Your Class Teacher",
+                        style: TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w500),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        teacherName,
+                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            
+            // Contact Details
+            if (email.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12.0),
+                child: Row(
+                  children: [
+                    const Icon(Icons.email, size: 20, color: Colors.grey),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        email,
+                        style: const TextStyle(fontSize: 13, color: Colors.grey),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            if (phone.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12.0),
+                child: Row(
+                  children: [
+                    const Icon(Icons.phone, size: 20, color: Colors.grey),
+                    const SizedBox(width: 12),
+                    Text(
+                      phone,
+                      style: const TextStyle(fontSize: 13, color: Colors.grey),
+                    ),
+                  ],
+                ),
+              ),
+            
+            const SizedBox(height: 16),
+            
+            // Action Buttons
+            Row(
+              children: [
+                // Chat Button
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => ChatDetailScreen(
+                            teacherId: teacherId,
+                            teacherName: teacherName,
+                            teacherEmail: email,
+                            subject: 'Class Teacher',
+                          ),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.chat, size: 18),
+                    label: const Text("Chat"),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                // Email Button
+                if (email.isNotEmpty)
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () => _sendEmail(
+                        email,
+                        subject: 'Message for ${_student?.name ?? 'Student'} - ${_student?.className ?? 'N/A'}',
+                      ),
+                      icon: const Icon(Icons.mail_outline, size: 18),
+                      label: const Text("Email"),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.blue,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        side: const BorderSide(color: Colors.blue, width: 1),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
