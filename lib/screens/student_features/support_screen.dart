@@ -80,7 +80,7 @@ class _SupportScreenState extends State<SupportScreen> {
     }
   }
 
-  Future<void> _sendEmail(String email, {String? subject}) async {
+Future<void> _sendEmail(String email, {String? subject}) async {
     final Uri emailUri = Uri(
       scheme: 'mailto',
       path: email,
@@ -88,7 +88,7 @@ class _SupportScreenState extends State<SupportScreen> {
     );
 
     if (await canLaunchUrl(emailUri)) {
-      await launchUrl(emailUri);
+      await launchUrl(emailUri, mode: LaunchMode.externalApplication);
     } else {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -169,11 +169,12 @@ class _SupportScreenState extends State<SupportScreen> {
             // School Admin Contact
             _buildSupportOption(
               "Call School Admin",
-              "For urgent queries",
+              _classTeacherInfo?['phone'] ?? adminPhone,
               Icons.call,
               Colors.green,
-              () => _makePhoneCall(adminPhone),
+              () => _makePhoneCall(_classTeacherInfo?['phone'] ?? adminPhone),
             ),
+
 
             // Email Support
             _buildSupportOption(

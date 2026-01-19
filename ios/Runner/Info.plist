@@ -47,5 +47,11 @@
 	<true/>
 	<key>NSFaceIDUsageDescription</key>
 	<string>We need access to Face ID to enable secure biometric authentication for your account.</string>
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>tel</string>
+		<string>mailto</string>
+		<string>sms</string>
+	</array>
 </dict>
 </plist>
