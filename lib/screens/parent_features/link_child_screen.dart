@@ -368,7 +368,7 @@ class _LinkChildScreenState extends State<LinkChildScreen> {
                         ),
                       ),
 
-                      const SizedBox(height: 20),
+                      SizedBox(height: MediaQuery.of(context).viewInsets.bottom + 50),
 
                       // Linked Children List
                       if (_linkedChildren.isNotEmpty) ...[

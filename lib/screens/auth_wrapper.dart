@@ -118,10 +118,15 @@ class _BiometricAuthScreenState extends State<_BiometricAuthScreen> {
             _authSuccess = true;
             _isAuthenticating = false;
           });
-          // Wait a moment then proceed
+          // Wait a moment then proceed to dashboard
           await Future.delayed(const Duration(milliseconds: 500));
           if (mounted) {
-            Navigator.of(context).pushReplacementNamed('/');
+            // Navigate to dashboard router, not back to splash
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(
+                builder: (context) => _DashboardRouter(user: widget.user),
+              ),
+            );
           }
         } else {
           setState(() => _isAuthenticating = false);
@@ -268,10 +273,14 @@ class _BiometricAuthScreenState extends State<_BiometricAuthScreen> {
                   const SizedBox(height: 12),
                   TextButton(
                     onPressed: () async {
-                      // Disable biometric and proceed
+                      // Disable biometric and proceed to dashboard
                       await _settingsService.setBiometricEnabled(false);
                       if (mounted) {
-                        Navigator.of(context).pushReplacementNamed('/');
+                        Navigator.of(context).pushReplacement(
+                          MaterialPageRoute(
+                            builder: (context) => _DashboardRouter(user: widget.user),
+                          ),
+                        );
                       }
                     },
                     child: const Text(

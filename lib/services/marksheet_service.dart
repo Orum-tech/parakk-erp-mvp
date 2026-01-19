@@ -16,6 +16,7 @@ class MarksheetService {
     double? cgpa,
     String? overallGrade,
     int? rank,
+    String? schoolName,
   }) async {
     final pdf = pw.Document();
     final dateFormat = DateFormat('dd MMM yyyy');
@@ -43,7 +44,7 @@ class MarksheetService {
                 crossAxisAlignment: pw.CrossAxisAlignment.center,
                 children: [
                   pw.Text(
-                    'PARAKK SCHOOL',
+                    schoolName ?? 'Study Buddy SCHOOL',
                     style: pw.TextStyle(
                       fontSize: 24,
                       fontWeight: pw.FontWeight.bold,

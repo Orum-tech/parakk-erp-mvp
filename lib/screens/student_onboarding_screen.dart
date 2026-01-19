@@ -299,7 +299,7 @@ class _StudentOnboardingScreenState extends State<StudentOnboardingScreen> {
                                 ),
                         ),
                       ),
-                      const SizedBox(height: 30),
+                      SizedBox(height: MediaQuery.of(context).viewInsets.bottom + 50),
                     ],
                   ),
                 ),

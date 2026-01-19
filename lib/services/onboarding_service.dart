@@ -109,6 +109,7 @@ class OnboardingService {
   // Save teacher onboarding data
   Future<void> completeTeacherOnboarding({
     required String employeeId,
+    required String schoolName,
     required List<String> subjects,
     required List<String> classIds,
     String? classTeacherClassId,
@@ -134,6 +135,7 @@ class OnboardingService {
         createdAt: userDoc.data()!['createdAt'] ?? Timestamp.now(),
         teacherId: user.uid,
         employeeId: employeeId,
+        schoolName: schoolName,
         phoneNumber: phoneNumber,
         address: address,
         subjects: subjects,

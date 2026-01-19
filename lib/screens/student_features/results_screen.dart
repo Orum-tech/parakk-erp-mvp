@@ -10,6 +10,7 @@ import '../../services/marks_service.dart';
 import '../../services/marksheet_service.dart';
 import '../../models/marks_model.dart';
 import '../../models/student_model.dart';
+import '../../models/teacher_model.dart';
 
 class ResultsScreen extends StatefulWidget {
   const ResultsScreen({super.key});
@@ -578,6 +579,24 @@ class _ResultsScreenState extends State<ResultsScreen> {
           ? DateFormat('dd MMM yyyy').format(marks.first.examDate!)
           : null;
 
+      // Get teacher's school name from the first mark entry
+      String? schoolName;
+      final enteredBy = marks.isNotEmpty ? marks.first.enteredBy : null;
+      if (enteredBy != null) {
+        try {
+          final teacherDoc = await FirebaseFirestore.instance
+              .collection('users')
+              .doc(enteredBy)
+              .get();
+          if (teacherDoc.exists) {
+            final teacher = TeacherModel.fromDocument(teacherDoc);
+            schoolName = teacher.schoolName;
+          }
+        } catch (e) {
+          debugPrint('Error fetching teacher school name: $e');
+        }
+      }
+
       // Generate PDF
       final pdfFile = await _marksheetService.generateMarksheetPDF(
         student: _student!,
@@ -587,6 +606,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
         cgpa: _calculateCGPA(marks),
         overallGrade: _overallGrade(marks),
         rank: _studentRank,
+        schoolName: schoolName,
       );
 
       // Close loading dialog

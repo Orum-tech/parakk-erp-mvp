@@ -16,6 +16,7 @@ class _TeacherOnboardingScreenState extends State<TeacherOnboardingScreen> {
   
   // Controllers
   final _employeeIdController = TextEditingController();
+  final _schoolNameController = TextEditingController();
   final _phoneNumberController = TextEditingController();
   final _addressController = TextEditingController();
   final _departmentController = TextEditingController();
@@ -149,6 +150,7 @@ class _TeacherOnboardingScreenState extends State<TeacherOnboardingScreen> {
     try {
       await _onboardingService.completeTeacherOnboarding(
         employeeId: _employeeIdController.text.trim(),
+        schoolName: _schoolNameController.text.trim(),
         subjects: _selectedSubjects,
         classIds: _selectedClassIds,
         classTeacherClassId: _classTeacherClassId,
@@ -196,6 +198,7 @@ class _TeacherOnboardingScreenState extends State<TeacherOnboardingScreen> {
   @override
   void dispose() {
     _employeeIdController.dispose();
+    _schoolNameController.dispose();
     _phoneNumberController.dispose();
     _addressController.dispose();
     _departmentController.dispose();
@@ -271,6 +274,20 @@ class _TeacherOnboardingScreenState extends State<TeacherOnboardingScreen> {
                         validator: (value) {
                           if (value == null || value.isEmpty) {
                             return 'Employee ID is required';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 20),
+
+                      // School Name (Required)
+                      _buildTextField(
+                        controller: _schoolNameController,
+                        label: "School Name *",
+                        icon: Icons.school_outlined,
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'School name is required';
                           }
                           return null;
                         },
@@ -373,7 +390,7 @@ class _TeacherOnboardingScreenState extends State<TeacherOnboardingScreen> {
                                 ),
                         ),
                       ),
-                      const SizedBox(height: 30),
+                      SizedBox(height: MediaQuery.of(context).viewInsets.bottom + 50),
                     ],
                   ),
                 ),

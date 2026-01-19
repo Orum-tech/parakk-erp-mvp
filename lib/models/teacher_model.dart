@@ -4,6 +4,7 @@ import 'user_model.dart';
 class TeacherModel extends UserModel {
   final String? teacherId;
   final String? employeeId;
+  final String? schoolName;
   final String? phoneNumber;
   final String? address;
   final List<String>? subjects;
@@ -22,6 +23,7 @@ class TeacherModel extends UserModel {
     required super.createdAt,
     this.teacherId,
     this.employeeId,
+    this.schoolName,
     this.phoneNumber,
     this.address,
     this.subjects,
@@ -43,6 +45,7 @@ class TeacherModel extends UserModel {
       createdAt: data['createdAt'] ?? Timestamp.now(),
       teacherId: data['teacherId'] ?? doc.id,
       employeeId: data['employeeId'],
+      schoolName: data['schoolName'],
       phoneNumber: data['phoneNumber'],
       address: data['address'],
       subjects: List<String>.from(data['subjects'] ?? []),
@@ -62,6 +65,7 @@ class TeacherModel extends UserModel {
     map.addAll({
       'teacherId': teacherId ?? uid,
       'employeeId': employeeId,
+      'schoolName': schoolName,
       'phoneNumber': phoneNumber,
       'address': address,
       'subjects': subjects,
@@ -83,6 +87,7 @@ class TeacherModel extends UserModel {
     Timestamp? createdAt,
     String? teacherId,
     String? employeeId,
+    String? schoolName,
     String? phoneNumber,
     String? address,
     List<String>? subjects,
@@ -101,6 +106,7 @@ class TeacherModel extends UserModel {
       createdAt: createdAt ?? this.createdAt,
       teacherId: teacherId ?? this.teacherId,
       employeeId: employeeId ?? this.employeeId,
+      schoolName: schoolName ?? this.schoolName,
       phoneNumber: phoneNumber ?? this.phoneNumber,
       address: address ?? this.address,
       subjects: subjects ?? this.subjects,
