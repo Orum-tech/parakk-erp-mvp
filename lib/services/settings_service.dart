@@ -138,10 +138,9 @@ class SettingsService {
     await prefs.setString(_keyLanguage, languageCode);
   }
 
-  // Get available languages
+  // Get available languages - Only Hindi for students
   List<Map<String, String>> getAvailableLanguages() {
     return [
-      {'code': 'en', 'name': 'English'},
       {'code': 'hi', 'name': 'हिंदी (Hindi)'},
     ];
   }

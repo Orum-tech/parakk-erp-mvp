@@ -1,10 +1,16 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/user_model.dart';
+import 'school_service.dart';
+import 'school_context_service.dart';
+import 'school_invitation_service.dart';
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final SchoolService _schoolService = SchoolService();
+  final SchoolContextService _schoolContextService = SchoolContextService();
+  final SchoolInvitationService _invitationService = SchoolInvitationService();
 
   // Sign up with email, password, name, and role
   Future<UserModel?> signUp({
@@ -12,8 +18,46 @@ class AuthService {
     required String password,
     required String name,
     required UserRole role,
+    String? schoolId,
+    String? schoolCode,
+    String? invitationId,
   }) async {
     try {
+      String? finalSchoolId = schoolId;
+
+      // Determine schoolId from invitation, schoolCode, or provided schoolId
+      if (invitationId != null) {
+        // Sign up via invitation
+        final invitation = await _invitationService.getInvitationById(invitationId);
+        if (invitation == null || !invitation.canAccept) {
+          throw Exception('Invalid or expired invitation');
+        }
+        finalSchoolId = invitation.schoolId;
+      } else if (schoolCode != null) {
+        // Sign up with school code
+        final school = await _schoolService.getSchoolByCode(schoolCode);
+        if (school == null) {
+          throw Exception('Invalid school code');
+        }
+        if (!school.isSubscriptionActive) {
+          throw Exception('School subscription is not active');
+        }
+        finalSchoolId = school.schoolId;
+      } else if (finalSchoolId == null || finalSchoolId.isEmpty) {
+        // For superAdmin, schoolId can be empty
+        if (role != UserRole.superAdmin) {
+          throw Exception('School code or invitation is required');
+        }
+      }
+
+      // Validate school if provided
+      if (finalSchoolId != null && finalSchoolId.isNotEmpty) {
+        final isActive = await _schoolService.isSchoolActive(finalSchoolId);
+        if (!isActive) {
+          throw Exception('School subscription is not active');
+        }
+      }
+
       // Create user in Firebase Auth
       final UserCredential userCredential = await _auth.createUserWithEmailAndPassword(
         email: email.trim(),
@@ -28,15 +72,37 @@ class AuthService {
         name: name.trim(),
         email: email.trim().toLowerCase(),
         role: role,
+        schoolId: finalSchoolId ?? '',
+        isActive: true,
         createdAt: Timestamp.now(),
       );
 
       // Save user to Firestore
-      await _firestore.collection('users').doc(uid).set(userModel.toMap());
+      try {
+        await _firestore.collection('users').doc(uid).set(userModel.toMap());
 
-      // If parent signs up, auto-link to students with matching parentEmail
-      if (role == UserRole.parent) {
-        await _linkParentToStudents(uid, email.trim().toLowerCase());
+        // Accept invitation if provided
+        if (invitationId != null) {
+          await _invitationService.acceptInvitation(invitationId, uid);
+        }
+
+        // Update school counts if schoolId is provided
+        if (finalSchoolId != null && finalSchoolId.isNotEmpty) {
+          if (role == UserRole.student) {
+            await _schoolService.incrementStudentCount(finalSchoolId);
+          } else if (role == UserRole.teacher) {
+            await _schoolService.incrementTeacherCount(finalSchoolId);
+          }
+        }
+
+        // If parent signs up, auto-link to students with matching parentEmail
+        if (role == UserRole.parent && finalSchoolId != null && finalSchoolId.isNotEmpty) {
+          await _linkParentToStudents(uid, email.trim().toLowerCase(), finalSchoolId);
+        }
+      } catch (e) {
+        // Rollback: Delete the user from Auth if Firestore write fails
+        await userCredential.user?.delete();
+        throw Exception('Failed to create user profile. Please try again.');
       }
 
       return userModel;
@@ -67,6 +133,12 @@ class AuthService {
       if (doc.exists) {
         final userModel = UserModel.fromDocument(doc);
         
+        // Check if user is active
+        if (!userModel.isActive) {
+          await _auth.signOut();
+          throw Exception('Your account has been deactivated. Please contact your school administrator.');
+        }
+        
         // Validate role if expectedRole is provided
         if (expectedRole != null && userModel.role != expectedRole) {
           // Sign out the user since role doesn't match
@@ -77,6 +149,16 @@ class AuthService {
           final expectedRoleString = _roleToString(expectedRole);
           
           throw Exception('You are a $actualRoleString. Please change role and try to login as $actualRoleString.');
+        }
+        
+        // Validate school subscription (except for superAdmin)
+        if (userModel.role != UserRole.superAdmin && 
+            userModel.schoolId.isNotEmpty) {
+          final isActive = await _schoolService.isSchoolActive(userModel.schoolId);
+          if (!isActive) {
+            await _auth.signOut();
+            throw Exception('Your school subscription is not active. Please contact your school administrator.');
+          }
         }
         
         return userModel;
@@ -103,6 +185,10 @@ class AuthService {
         return 'Teacher';
       case UserRole.parent:
         return 'Parent';
+      case UserRole.schoolAdmin:
+        return 'School Admin';
+      case UserRole.superAdmin:
+        return 'Super Admin';
     }
   }
 
@@ -180,13 +266,18 @@ class AuthService {
     return null;
   }
 
-  // Auto-link parent to students with matching email
-  Future<void> _linkParentToStudents(String parentId, String parentEmail) async {
+  // Auto-link parent to students with matching email (within same school)
+  Future<void> _linkParentToStudents(
+    String parentId,
+    String parentEmail,
+    String schoolId,
+  ) async {
     try {
-      // Find all students with matching parentEmail
+      // Find all students with matching parentEmail in the same school
       final studentsSnapshot = await _firestore
           .collection('users')
           .where('role', isEqualTo: 'Student')
+          .where('schoolId', isEqualTo: schoolId)
           .where('parentEmail', isEqualTo: parentEmail)
           .get();
 
@@ -195,6 +286,7 @@ class AuthService {
         final fallbackSnapshot = await _firestore
             .collection('users')
             .where('role', isEqualTo: 'student')
+            .where('schoolId', isEqualTo: schoolId)
             .where('parentEmail', isEqualTo: parentEmail)
             .get();
 
@@ -230,6 +322,26 @@ class AuthService {
     } catch (e) {
       // Silently fail - linking is not critical for signup
       print('Error linking parent to students: $e');
+    }
+  }
+
+  // Validate school code
+  Future<bool> validateSchoolCode(String schoolCode) async {
+    try {
+      final school = await _schoolService.getSchoolByCode(schoolCode);
+      if (school == null) return false;
+      return school.isSubscriptionActive;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  // Get pending invitations for email
+  Future<List<dynamic>> getPendingInvitations(String email) async {
+    try {
+      return await _invitationService.getPendingInvitationsForEmail(email);
+    } catch (e) {
+      return [];
     }
   }
 

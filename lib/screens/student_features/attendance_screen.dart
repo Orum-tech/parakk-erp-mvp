@@ -235,10 +235,38 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                   }
 
                   if (snapshot.hasError) {
-                    return Center(child: Text('Error: ${snapshot.error}'));
+                    debugPrint('Attendance stream error: ${snapshot.error}');
+                    return Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(20.0),
+                        child: Column(
+                          children: [
+                            Icon(Icons.error_outline, size: 48, color: Colors.red[300]),
+                            const SizedBox(height: 16),
+                            Text(
+                              'Error loading attendance',
+                              style: TextStyle(color: Colors.grey[600], fontSize: 16),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              '${snapshot.error}',
+                              style: TextStyle(color: Colors.grey[500], fontSize: 12),
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 16),
+                            ElevatedButton(
+                              onPressed: _loadStudentData,
+                              child: const Text('Retry'),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
                   }
 
                   final attendanceList = snapshot.data ?? [];
+                  debugPrint('Total attendance records fetched: ${attendanceList.length}');
+                  
                   final filteredList = attendanceList
                       .where((a) =>
                           a.date.year == _selectedMonth.year &&
@@ -246,13 +274,28 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                       .toList()
                     ..sort((a, b) => b.date.compareTo(a.date));
 
+                  debugPrint('Filtered attendance records for ${_selectedMonth.month}/${_selectedMonth.year}: ${filteredList.length}');
+
                   if (filteredList.isEmpty) {
                     return Center(
                       child: Padding(
                         padding: const EdgeInsets.all(20.0),
-                        child: Text(
-                          'No attendance records for this month',
-                          style: TextStyle(color: Colors.grey[600]),
+                        child: Column(
+                          children: [
+                            Icon(Icons.calendar_today, size: 48, color: Colors.grey[400]),
+                            const SizedBox(height: 16),
+                            Text(
+                              'No attendance records for this month',
+                              style: TextStyle(color: Colors.grey[600], fontSize: 16),
+                            ),
+                            if (attendanceList.isNotEmpty) ...[
+                              const SizedBox(height: 8),
+                              Text(
+                                'Total records: ${attendanceList.length}',
+                                style: TextStyle(color: Colors.grey[500], fontSize: 12),
+                              ),
+                            ],
+                          ],
                         ),
                       ),
                     );

@@ -401,11 +401,13 @@ class ReportService {
           double totalMarks = 0;
           double maxTotalMarks = 0;
 
+          final schoolId = students.isNotEmpty ? students.first.schoolId : '';
           final subjectCells = subjects.map((subject) {
             final mark = studentMarks.firstWhere(
               (m) => m.subjectName == subject,
               orElse: () => MarksModel(
                 marksId: '',
+                schoolId: schoolId,
                 examId: examId,
                 examName: examName,
                 studentId: student.uid,

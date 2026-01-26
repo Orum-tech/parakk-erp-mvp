@@ -4,6 +4,7 @@ class HomeworkModel {
   final String homeworkId;
   final String title;
   final String? description;
+  final String schoolId; // REQUIRED - links homework to school
   final String classId;
   final String className;
   final String subjectId;
@@ -20,6 +21,7 @@ class HomeworkModel {
   HomeworkModel({
     required this.homeworkId,
     required this.title,
+    required this.schoolId,
     this.description,
     required this.classId,
     required this.className,
@@ -45,6 +47,7 @@ class HomeworkModel {
     return HomeworkModel(
       homeworkId: doc.id,
       title: data['title'] ?? '',
+      schoolId: data['schoolId'] ?? '', // Will be required after migration
       description: data['description'],
       classId: data['classId'] ?? '',
       className: data['className'] ?? '',
@@ -65,6 +68,7 @@ class HomeworkModel {
     return {
       'homeworkId': homeworkId,
       'title': title,
+      'schoolId': schoolId,
       'description': description,
       'classId': classId,
       'className': className,
@@ -84,6 +88,7 @@ class HomeworkModel {
   HomeworkModel copyWith({
     String? homeworkId,
     String? title,
+    String? schoolId,
     String? description,
     String? classId,
     String? className,
@@ -101,6 +106,7 @@ class HomeworkModel {
     return HomeworkModel(
       homeworkId: homeworkId ?? this.homeworkId,
       title: title ?? this.title,
+      schoolId: schoolId ?? this.schoolId,
       description: description ?? this.description,
       classId: classId ?? this.classId,
       className: className ?? this.className,

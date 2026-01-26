@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 class MarksModel {
   final String marksId;
+  final String schoolId; // REQUIRED - links marks to school
   final String examId;
   final String examName;
   final String studentId;
@@ -22,6 +23,7 @@ class MarksModel {
 
   MarksModel({
     required this.marksId,
+    required this.schoolId,
     required this.examId,
     required this.examName,
     required this.studentId,
@@ -60,6 +62,7 @@ class MarksModel {
     final data = doc.data() as Map<String, dynamic>;
     return MarksModel(
       marksId: doc.id,
+      schoolId: data['schoolId'] ?? '', // Will be required after migration
       examId: data['examId'] ?? '',
       examName: data['examName'] ?? '',
       studentId: data['studentId'] ?? '',
@@ -84,6 +87,7 @@ class MarksModel {
     final calculatedGrade = grade ?? calculateGrade();
     return {
       'marksId': marksId,
+      'schoolId': schoolId,
       'examId': examId,
       'examName': examName,
       'studentId': studentId,
@@ -106,6 +110,7 @@ class MarksModel {
 
   MarksModel copyWith({
     String? marksId,
+    String? schoolId,
     String? examId,
     String? examName,
     String? studentId,
@@ -126,6 +131,7 @@ class MarksModel {
   }) {
     return MarksModel(
       marksId: marksId ?? this.marksId,
+      schoolId: schoolId ?? this.schoolId,
       examId: examId ?? this.examId,
       examName: examName ?? this.examName,
       studentId: studentId ?? this.studentId,

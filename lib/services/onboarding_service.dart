@@ -75,11 +75,13 @@ class OnboardingService {
       final userDoc = await _firestore.collection('users').doc(user.uid).get();
       if (!userDoc.exists) throw Exception('User document not found');
 
+      final userData = userDoc.data()!;
       final studentModel = StudentModel(
         uid: user.uid,
-        name: userDoc.data()!['name'] ?? '',
-        email: userDoc.data()!['email'] ?? '',
-        createdAt: userDoc.data()!['createdAt'] ?? Timestamp.now(),
+        name: userData['name'] ?? '',
+        email: userData['email'] ?? '',
+        schoolId: userData['schoolId'] ?? '',
+        createdAt: userData['createdAt'] ?? Timestamp.now(),
         studentId: user.uid,
         rollNumber: rollNumber,
         classId: classId,
@@ -109,7 +111,6 @@ class OnboardingService {
   // Save teacher onboarding data
   Future<void> completeTeacherOnboarding({
     required String employeeId,
-    required String schoolName,
     required List<String> subjects,
     required List<String> classIds,
     String? classTeacherClassId,
@@ -128,14 +129,15 @@ class OnboardingService {
       final userDoc = await _firestore.collection('users').doc(user.uid).get();
       if (!userDoc.exists) throw Exception('User document not found');
 
+      final userData = userDoc.data()!;
       final teacherModel = TeacherModel(
         uid: user.uid,
-        name: userDoc.data()!['name'] ?? '',
-        email: userDoc.data()!['email'] ?? '',
-        createdAt: userDoc.data()!['createdAt'] ?? Timestamp.now(),
+        name: userData['name'] ?? '',
+        email: userData['email'] ?? '',
+        schoolId: userData['schoolId'] ?? '',
+        createdAt: userData['createdAt'] ?? Timestamp.now(),
         teacherId: user.uid,
         employeeId: employeeId,
-        schoolName: schoolName,
         phoneNumber: phoneNumber,
         address: address,
         subjects: subjects,

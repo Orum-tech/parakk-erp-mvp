@@ -26,44 +26,13 @@ class ParentService {
       if (user == null) throw Exception('User not authenticated');
 
       // Query students where parentId matches current user's uid
-      QuerySnapshot studentsSnapshot;
-      
-      try {
-        studentsSnapshot = await _firestore
-            .collection('users')
-            .where('role', isEqualTo: 'Student')
-            .where('parentId', isEqualTo: user.uid)
-            .get();
-      } catch (e) {
-        // Fallback to lowercase 'student'
-        try {
-          studentsSnapshot = await _firestore
-              .collection('users')
-              .where('role', isEqualTo: 'student')
-              .where('parentId', isEqualTo: user.uid)
-              .get();
-        } catch (e2) {
-          // Last resort: fetch all students and filter in memory
-          final allStudentsSnapshot = await _firestore
-              .collection('users')
-              .where('role', isEqualTo: 'Student')
-              .get();
-          
-          final children = allStudentsSnapshot.docs
-              .map((doc) {
-                try {
-                  return StudentModel.fromDocument(doc);
-                } catch (e) {
-                  return null;
-                }
-              })
-              .where((student) => student != null && student.parentId == user.uid)
-              .cast<StudentModel>()
-              .toList();
-          
-          return children;
-        }
-      }
+      // Query students where parentId matches current user's uid
+      // Use whereIn to handle role case sensitivity efficiently
+      final studentsSnapshot = await _firestore
+          .collection('users')
+          .where('role', whereIn: ['Student', 'student'])
+          .where('parentId', isEqualTo: user.uid)
+          .get();
 
       final children = studentsSnapshot.docs
           .map((doc) {
@@ -315,31 +284,20 @@ class ParentService {
       if (user == null) throw Exception('User not authenticated');
 
       // Find student with matching email
-      QuerySnapshot studentQuery;
-      
-      try {
-        studentQuery = await _firestore
-            .collection('users')
-            .where('role', isEqualTo: 'Student')
-            .where('email', isEqualTo: childEmail.toLowerCase())
-            .limit(1)
-            .get();
-      } catch (e) {
-        // Fallback to lowercase 'student'
-        studentQuery = await _firestore
-            .collection('users')
-            .where('role', isEqualTo: 'student')
-            .where('email', isEqualTo: childEmail.toLowerCase())
-            .limit(1)
-            .get();
-      }
+      // Use whereIn for role to handle both cases in one query
+      final studentQuery = await _firestore
+          .collection('users')
+          .where('role', whereIn: ['Student', 'student'])
+          .where('email', isEqualTo: childEmail.toLowerCase())
+          .limit(1)
+          .get();
 
       if (studentQuery.docs.isEmpty) {
         throw Exception('No student found with this email. Please make sure your child has signed up with this email address.');
       }
 
       final studentDoc = studentQuery.docs.first;
-      final studentData = studentDoc.data() as Map<String, dynamic>;
+      final studentData = studentDoc.data();
       
       // Check if student already has a parent linked
       final existingParentId = studentData['parentId'] as String?;

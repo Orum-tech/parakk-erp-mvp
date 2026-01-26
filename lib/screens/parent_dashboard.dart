@@ -19,6 +19,7 @@ import 'parent_features/admin_office_contact_screen.dart';
 import 'parent_features/leave_request_screen.dart';
 import 'parent_features/notifications_screen.dart';
 import '../services/notification_service.dart';
+import '../widgets/school_context_indicator.dart';
 import 'placeholder_screen.dart';
 import 'role_selection_screen.dart';
 
@@ -275,19 +276,27 @@ class _ParentDashboardState extends State<ParentDashboard> {
               ),
             ),
             const SizedBox(width: 12),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text("Parent Portal", style: TextStyle(color: Colors.grey[600], fontSize: 11, fontWeight: FontWeight.w600)),
-                Text(
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SchoolNameHeader(),
+                  const SizedBox(height: 2),
+                  Text("Parent Portal", style: TextStyle(color: Colors.grey[600], fontSize: 11, fontWeight: FontWeight.w600)),
+                  Text(
                   _parent?.name ?? 'Parent',
                   style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.w800, fontSize: 18),
                 ),
-              ],
+                ],
+              ),
             ),
           ],
         ),
         actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: SchoolContextIndicator(),
+          ),
           Container(
             margin: const EdgeInsets.only(right: 15),
             decoration: BoxDecoration(

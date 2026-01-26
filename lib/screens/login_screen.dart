@@ -52,6 +52,9 @@ class _LoginScreenState extends State<LoginScreen> {
         case 'parent':
           expectedRole = UserRole.parent;
           break;
+        case 'schooladmin':
+          expectedRole = UserRole.schoolAdmin;
+          break;
       }
 
       // Call login service with role validation
@@ -270,32 +273,33 @@ class _LoginScreenState extends State<LoginScreen> {
                   
                     const SizedBox(height: 20),
                     
-                    // 4. Don't have an account? Sign up
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text("${loc.dontHaveAccount} ", style: TextStyle(color: Colors.grey[600])),
-                        GestureDetector(
-                          onTap: _isLoading
-                              ? null
-                              : () {
-                                  Navigator.pushReplacement(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => SignupScreen(userRole: widget.userRole),
-                                    ),
-                                  );
-                                },
-                          child: Text(
-                            loc.signup,
-                            style: TextStyle(
-                              color: primaryBlue,
-                              fontWeight: FontWeight.bold,
+                    // 4. Don't have an account? Sign up (hide for SchoolAdmin)
+                    if (widget.userRole.toLowerCase() != 'schooladmin')
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text("${loc.dontHaveAccount} ", style: TextStyle(color: Colors.grey[600])),
+                          GestureDetector(
+                            onTap: _isLoading
+                                ? null
+                                : () {
+                                    Navigator.pushReplacement(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => SignupScreen(userRole: widget.userRole),
+                                      ),
+                                    );
+                                  },
+                            child: Text(
+                              loc.signup,
+                              style: TextStyle(
+                                color: primaryBlue,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
-                        ),
-                      ],
-                    ),
+                        ],
+                      ),
                     
                     const SizedBox(height: 10),
                     

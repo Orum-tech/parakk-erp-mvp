@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/attendance_model.dart';
@@ -48,86 +49,22 @@ class AttendanceService {
       QuerySnapshot studentsSnapshot;
       
       try {
-        // Try with 'Student' first (capitalized, as stored in Firestore)
+        // use whereIn to handle both 'Student' and 'student' in a single query
+        // This is much more efficient and avoids multiple round trips or complex error handling
         studentsSnapshot = await _firestore
             .collection('users')
-            .where('role', isEqualTo: 'Student')
+            .where('role', whereIn: ['Student', 'student'])
             .where('classId', isEqualTo: classId)
             .get();
       } catch (e) {
-        // If query fails (e.g., missing index), try with lowercase 'student'
-        try {
-          studentsSnapshot = await _firestore
-              .collection('users')
-              .where('role', isEqualTo: 'student')
-              .where('classId', isEqualTo: classId)
-              .get();
-        } catch (e2) {
-          // Last resort: fetch all students and filter in memory
-          print('WARNING: Composite query failed, fetching all students and filtering in memory');
-          print('Error 1: $e');
-          print('Error 2: $e2');
-          
-          final allStudentsSnapshot = await _firestore
-              .collection('users')
-              .where('role', isEqualTo: 'Student')
-              .get();
-          
-          final allStudents = allStudentsSnapshot.docs
-              .map((doc) {
-                try {
-                  return StudentModel.fromDocument(doc);
-                } catch (e) {
-                  return null;
-                }
-              })
-              .where((student) => student != null && student.classId == classId)
-              .cast<StudentModel>()
-              .toList();
-          
-          // Sort by rollNumber
-          allStudents.sort((a, b) {
-            final rollA = a.rollNumber ?? '';
-            final rollB = b.rollNumber ?? '';
-            final numA = int.tryParse(rollA);
-            final numB = int.tryParse(rollB);
-            if (numA != null && numB != null) {
-              return numA.compareTo(numB);
-            }
-            return rollA.compareTo(rollB);
-          });
-          
-          return allStudents;
-        }
+        print('ERROR: Failed to fetch students for class $classId: $e');
+        // RETHROW rather than hiding the error or fetching all users
+        rethrow;
       }
 
       // Debug logging if no students found
       if (studentsSnapshot.docs.isEmpty) {
         print('DEBUG: getStudentsByClass - No students found for classId: $classId');
-        print('DEBUG: Checking if class exists and has students...');
-        
-        // Check if class exists
-        final classDoc = await _firestore.collection('classes').doc(classId).get();
-        print('DEBUG: Class document exists: ${classDoc.exists}');
-        
-        // Check if there are any students at all
-        final allStudentsCheck = await _firestore
-            .collection('users')
-            .where('role', isEqualTo: 'Student')
-            .limit(5)
-            .get();
-        print('DEBUG: Total students in system: ${allStudentsCheck.docs.length}');
-        
-        if (allStudentsCheck.docs.isNotEmpty) {
-          for (var doc in allStudentsCheck.docs) {
-            try {
-              final student = StudentModel.fromDocument(doc);
-              print('DEBUG: Sample student - name: ${student.name}, classId: ${student.classId}');
-            } catch (e) {
-              print('DEBUG: Could not parse sample student: $e');
-            }
-          }
-        }
       }
 
       final students = studentsSnapshot.docs
@@ -193,6 +130,8 @@ class AttendanceService {
       // Get student info for names
       final students = await getStudentsByClass(classId);
       final studentMap = {for (var s in students) s.uid: s};
+      // Get schoolId from first student (all students in same class should have same schoolId)
+      final schoolId = students.isNotEmpty ? students.first.schoolId : '';
 
       final batch = _firestore.batch();
       final dateOnly = DateTime(date.year, date.month, date.day);
@@ -210,6 +149,7 @@ class AttendanceService {
 
         final attendance = AttendanceModel(
           attendanceId: attendanceId,
+          schoolId: schoolId,
           studentId: studentId,
           studentName: student.name,
           classId: classId,
@@ -273,46 +213,77 @@ class AttendanceService {
     DateTime? endDate,
   }) {
     try {
+      // Query without orderBy to avoid composite index requirement
+      // We'll sort in memory instead
       Query query = _firestore
           .collection('attendance')
           .where('studentId', isEqualTo: studentId);
 
-      // Note: Firestore requires composite index if using multiple where clauses with orderBy
-      // For now, we'll fetch all and filter in memory if dates are provided
       return query.snapshots().map((snapshot) {
-        var attendanceList = snapshot.docs
-            .map((doc) => AttendanceModel.fromDocument(doc))
-            .toList();
+        try {
+          var attendanceList = snapshot.docs
+              .map((doc) {
+                try {
+                  return AttendanceModel.fromDocument(doc);
+                } catch (e) {
+                  debugPrint('Error parsing attendance document ${doc.id}: $e');
+                  return null;
+                }
+              })
+              .where((attendance) => attendance != null)
+              .cast<AttendanceModel>()
+              .toList();
 
-        // Filter by dates if provided
-        if (startDate != null) {
-          attendanceList = attendanceList.where((a) => a.date.isAfter(startDate.subtract(const Duration(days: 1)))).toList();
+          // Filter by dates if provided
+          if (startDate != null) {
+            final startDateOnly = DateTime(startDate.year, startDate.month, startDate.day);
+            attendanceList = attendanceList.where((a) {
+              final aDateOnly = DateTime(a.date.year, a.date.month, a.date.day);
+              return aDateOnly.isAfter(startDateOnly.subtract(const Duration(days: 1)));
+            }).toList();
+          }
+          if (endDate != null) {
+            final endDateOnly = DateTime(endDate.year, endDate.month, endDate.day);
+            attendanceList = attendanceList.where((a) {
+              final aDateOnly = DateTime(a.date.year, a.date.month, a.date.day);
+              return aDateOnly.isBefore(endDateOnly.add(const Duration(days: 1)));
+            }).toList();
+          }
+
+          // Sort by date descending
+          attendanceList.sort((a, b) => b.date.compareTo(a.date));
+
+          return attendanceList;
+        } catch (e) {
+          debugPrint('Error processing attendance snapshot: $e');
+          return <AttendanceModel>[];
         }
-        if (endDate != null) {
-          attendanceList = attendanceList.where((a) => a.date.isBefore(endDate.add(const Duration(days: 1)))).toList();
-        }
-
-        // Sort by date descending
-        attendanceList.sort((a, b) => b.date.compareTo(a.date));
-
-        return attendanceList;
+      }).handleError((error) {
+        debugPrint('Error in getStudentAttendance stream: $error');
+        // Return empty list on error instead of throwing
+        return <AttendanceModel>[];
       });
     } catch (e) {
-      throw Exception('Failed to fetch student attendance: $e');
+      debugPrint('Error setting up getStudentAttendance query: $e');
+      // Return empty stream on error
+      return Stream.value(<AttendanceModel>[]);
     }
   }
 
   // Get attendance statistics for a student
   Future<Map<String, dynamic>> getStudentAttendanceStats(String studentId) async {
     try {
-      final now = DateTime.now();
-      final startOfMonth = DateTime(now.year, now.month, 1);
-      
+      // Query without date filter first to avoid composite index requirement
+      // We'll filter in memory
       final attendanceSnapshot = await _firestore
           .collection('attendance')
           .where('studentId', isEqualTo: studentId)
-          .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(startOfMonth))
           .get();
+
+      debugPrint('getStudentAttendanceStats: Found ${attendanceSnapshot.docs.length} attendance records for studentId: $studentId');
+
+      final now = DateTime.now();
+      final startOfMonth = DateTime(now.year, now.month, 1);
 
       int present = 0;
       int absent = 0;
@@ -320,26 +291,52 @@ class AttendanceService {
       int excused = 0;
 
       for (var doc in attendanceSnapshot.docs) {
-        final data = doc.data();
-        final status = data['status'] as String? ?? 'Present';
-        switch (status.toLowerCase()) {
-          case 'present':
-            present++;
-            break;
-          case 'absent':
-            absent++;
-            break;
-          case 'late':
-            late++;
-            break;
-          case 'excused':
-            excused++;
-            break;
+        try {
+          final data = doc.data();
+          final dateField = data['date'];
+          
+          // Check if date is within current month
+          if (dateField != null) {
+            DateTime attendanceDate;
+            if (dateField is Timestamp) {
+              attendanceDate = dateField.toDate();
+            } else {
+              continue; // Skip invalid date
+            }
+            
+            // Filter by current month
+            if (attendanceDate.year != now.year || attendanceDate.month != now.month) {
+              continue;
+            }
+          } else {
+            continue; // Skip records without date
+          }
+
+          final status = data['status'] as String? ?? 'Present';
+          switch (status.toLowerCase()) {
+            case 'present':
+              present++;
+              break;
+            case 'absent':
+              absent++;
+              break;
+            case 'late':
+              late++;
+              break;
+            case 'excused':
+              excused++;
+              break;
+          }
+        } catch (e) {
+          debugPrint('Error processing attendance document ${doc.id}: $e');
+          continue;
         }
       }
 
       final total = present + absent + late + excused;
       final percentage = total > 0 ? (present / total * 100) : 0.0;
+
+      debugPrint('getStudentAttendanceStats: present=$present, absent=$absent, late=$late, total=$total, percentage=$percentage');
 
       return {
         'present': present,
@@ -350,7 +347,16 @@ class AttendanceService {
         'percentage': percentage,
       };
     } catch (e) {
-      throw Exception('Failed to get attendance stats: $e');
+      debugPrint('Error in getStudentAttendanceStats: $e');
+      // Return default stats instead of throwing
+      return {
+        'present': 0,
+        'absent': 0,
+        'late': 0,
+        'excused': 0,
+        'total': 0,
+        'percentage': 0.0,
+      };
     }
   }
 

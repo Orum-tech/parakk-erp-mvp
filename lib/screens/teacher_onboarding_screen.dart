@@ -150,7 +150,6 @@ class _TeacherOnboardingScreenState extends State<TeacherOnboardingScreen> {
     try {
       await _onboardingService.completeTeacherOnboarding(
         employeeId: _employeeIdController.text.trim(),
-        schoolName: _schoolNameController.text.trim(),
         subjects: _selectedSubjects,
         classIds: _selectedClassIds,
         classTeacherClassId: _classTeacherClassId,

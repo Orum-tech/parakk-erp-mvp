@@ -94,11 +94,13 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
       setState(() {
         _students = students;
         // Initialize attendance status
+        final schoolId = students.isNotEmpty ? students.first.schoolId : '';
         for (var student in students) {
           final existing = todayAttendance.firstWhere(
             (a) => a.studentId == student.uid,
             orElse: () => AttendanceModel(
               attendanceId: '',
+              schoolId: schoolId,
               studentId: student.uid,
               studentName: student.name,
               classId: classId,

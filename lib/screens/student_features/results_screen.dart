@@ -10,7 +10,6 @@ import '../../services/marks_service.dart';
 import '../../services/marksheet_service.dart';
 import '../../models/marks_model.dart';
 import '../../models/student_model.dart';
-import '../../models/teacher_model.dart';
 
 class ResultsScreen extends StatefulWidget {
   const ResultsScreen({super.key});
@@ -582,20 +581,8 @@ class _ResultsScreenState extends State<ResultsScreen> {
       // Get teacher's school name from the first mark entry
       String? schoolName;
       final enteredBy = marks.isNotEmpty ? marks.first.enteredBy : null;
-      if (enteredBy != null) {
-        try {
-          final teacherDoc = await FirebaseFirestore.instance
-              .collection('users')
-              .doc(enteredBy)
-              .get();
-          if (teacherDoc.exists) {
-            final teacher = TeacherModel.fromDocument(teacherDoc);
-            schoolName = teacher.schoolName;
-          }
-        } catch (e) {
-          debugPrint('Error fetching teacher school name: $e');
-        }
-      }
+      // School name is now obtained from school context, not from teacher model
+      // This is handled elsewhere in the code
 
       // Generate PDF
       final pdfFile = await _marksheetService.generateMarksheetPDF(

@@ -4,6 +4,8 @@ enum UserRole {
   student,
   teacher,
   parent,
+  schoolAdmin,
+  superAdmin,
 }
 
 class UserModel {
@@ -11,6 +13,8 @@ class UserModel {
   final String name;
   final String email;
   final UserRole role;
+  final String schoolId; // REQUIRED - links user to school
+  final bool isActive; // For soft deletion
   final Timestamp createdAt;
   final String? profilePictureUrl;
 
@@ -19,6 +23,8 @@ class UserModel {
     required this.name,
     required this.email,
     required this.role,
+    required this.schoolId,
+    this.isActive = true,
     required this.createdAt,
     this.profilePictureUrl,
   });
@@ -32,6 +38,10 @@ class UserModel {
         return 'Teacher';
       case UserRole.parent:
         return 'Parent';
+      case UserRole.schoolAdmin:
+        return 'SchoolAdmin';
+      case UserRole.superAdmin:
+        return 'SuperAdmin';
     }
   }
 
@@ -39,10 +49,12 @@ class UserModel {
   factory UserModel.fromDocument(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
     return UserModel(
-      uid: data['uid'] ?? '',
+      uid: data['uid'] ?? doc.id,
       name: data['name'] ?? '',
       email: data['email'] ?? '',
       role: _roleFromString(data['role'] ?? 'Student'),
+      schoolId: data['schoolId'] ?? '', // Will be required after migration
+      isActive: data['isActive'] ?? true,
       createdAt: data['createdAt'] ?? Timestamp.now(),
       profilePictureUrl: data['profilePictureUrl'],
     );
@@ -55,6 +67,8 @@ class UserModel {
       'name': name,
       'email': email,
       'role': roleString,
+      'schoolId': schoolId,
+      'isActive': isActive,
       'createdAt': createdAt,
       'profilePictureUrl': profilePictureUrl,
     };
@@ -69,6 +83,10 @@ class UserModel {
         return UserRole.teacher;
       case 'parent':
         return UserRole.parent;
+      case 'schooladmin':
+        return UserRole.schoolAdmin;
+      case 'superadmin':
+        return UserRole.superAdmin;
       default:
         return UserRole.student;
     }
@@ -83,6 +101,10 @@ class UserModel {
         return '/teacher-dashboard';
       case UserRole.parent:
         return '/parent-dashboard';
+      case UserRole.schoolAdmin:
+        return '/school-admin-dashboard';
+      case UserRole.superAdmin:
+        return '/super-admin-dashboard';
     }
   }
 }

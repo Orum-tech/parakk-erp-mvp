@@ -4,6 +4,7 @@ class ClassModel {
   final String classId;
   final String className;
   final String section;
+  final String schoolId; // REQUIRED - links class to school
   final String? classTeacherId;
   final String? classTeacherName;
   final int? totalStudents;
@@ -16,6 +17,7 @@ class ClassModel {
     required this.classId,
     required this.className,
     required this.section,
+    required this.schoolId,
     this.classTeacherId,
     this.classTeacherName,
     this.totalStudents,
@@ -33,6 +35,7 @@ class ClassModel {
       classId: doc.id,
       className: data['className'] ?? '',
       section: data['section'] ?? '',
+      schoolId: data['schoolId'] ?? '', // Will be required after migration
       classTeacherId: data['classTeacherId'],
       classTeacherName: data['classTeacherName'],
       totalStudents: data['totalStudents'],
@@ -48,6 +51,7 @@ class ClassModel {
       'classId': classId,
       'className': className,
       'section': section,
+      'schoolId': schoolId,
       'classTeacherId': classTeacherId,
       'classTeacherName': classTeacherName,
       'totalStudents': totalStudents,
@@ -62,6 +66,7 @@ class ClassModel {
     String? classId,
     String? className,
     String? section,
+    String? schoolId,
     String? classTeacherId,
     String? classTeacherName,
     int? totalStudents,
@@ -74,6 +79,7 @@ class ClassModel {
       classId: classId ?? this.classId,
       className: className ?? this.className,
       section: section ?? this.section,
+      schoolId: schoolId ?? this.schoolId,
       classTeacherId: classTeacherId ?? this.classTeacherId,
       classTeacherName: classTeacherName ?? this.classTeacherName,
       totalStudents: totalStudents ?? this.totalStudents,

@@ -58,6 +58,7 @@ import 'teacher_features/incident_log_screen.dart';
 import 'teacher_features/lesson_plan_screen.dart';
 import '../services/leave_request_service.dart';
 import '../models/leave_request_model.dart';
+import '../widgets/school_context_indicator.dart';
 
 // ==========================================================
 //          6. IMPORTS: STUDY HUB (Shared with Student)
@@ -409,10 +410,13 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
               ),
             ),
             const SizedBox(width: 15),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SchoolNameHeader(),
+                  const SizedBox(height: 2),
+                  Text(
                   "${_getGreeting()},", 
                   style: TextStyle(
                     color: Colors.grey[600], 
@@ -428,11 +432,16 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
                     fontSize: 18
                   )
                 ),
-              ],
+                ],
+              ),
             ),
           ],
         ),
         actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: SchoolContextIndicator(),
+          ),
           Container(
             margin: const EdgeInsets.only(right: 20),
             decoration: BoxDecoration(

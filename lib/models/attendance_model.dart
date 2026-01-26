@@ -10,6 +10,7 @@ enum AttendanceStatus {
 
 class AttendanceModel {
   final String attendanceId;
+  final String schoolId; // REQUIRED - links attendance to school
   final String studentId;
   final String studentName;
   final String classId;
@@ -26,6 +27,7 @@ class AttendanceModel {
 
   AttendanceModel({
     required this.attendanceId,
+    required this.schoolId,
     required this.studentId,
     required this.studentName,
     required this.classId,
@@ -60,6 +62,7 @@ class AttendanceModel {
     final data = doc.data() as Map<String, dynamic>;
     return AttendanceModel(
       attendanceId: doc.id,
+      schoolId: data['schoolId'] ?? '', // Will be required after migration
       studentId: data['studentId'] ?? '',
       studentName: data['studentName'] ?? '',
       classId: data['classId'] ?? '',
@@ -111,6 +114,7 @@ class AttendanceModel {
   Map<String, dynamic> toMap() {
     return {
       'attendanceId': attendanceId,
+      'schoolId': schoolId,
       'studentId': studentId,
       'studentName': studentName,
       'classId': classId,
@@ -129,6 +133,7 @@ class AttendanceModel {
 
   AttendanceModel copyWith({
     String? attendanceId,
+    String? schoolId,
     String? studentId,
     String? studentName,
     String? classId,
@@ -145,6 +150,7 @@ class AttendanceModel {
   }) {
     return AttendanceModel(
       attendanceId: attendanceId ?? this.attendanceId,
+      schoolId: schoolId ?? this.schoolId,
       studentId: studentId ?? this.studentId,
       studentName: studentName ?? this.studentName,
       classId: classId ?? this.classId,

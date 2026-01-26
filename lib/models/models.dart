@@ -2,6 +2,8 @@
 export 'user_model.dart';
 export 'student_model.dart';
 export 'teacher_model.dart';
+export 'school_model.dart';
+export 'school_admin_model.dart';
 
 // Academic Models
 export 'class_model.dart';

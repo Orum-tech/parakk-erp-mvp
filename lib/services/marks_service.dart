@@ -24,8 +24,18 @@ class MarksService {
 
       // Fetch class details
       final classes = <Map<String, String>>[];
-      for (var classId in classIds) {
-        final classDoc = await _firestore.collection('classes').doc(classId).get();
+      
+      // Parallel fetch of class documents
+      final classFutures = classIds.map((classId) => 
+        _firestore.collection('classes').doc(classId).get()
+      );
+      
+      final classDocs = await Future.wait(classFutures);
+      
+      for (var i = 0; i < classIds.length; i++) {
+        final classId = classIds[i];
+        final classDoc = classDocs[i];
+        
         if (classDoc.exists) {
           final data = classDoc.data()!;
           classes.add({
@@ -75,9 +85,10 @@ class MarksService {
   // Get students by class
   Future<List<StudentModel>> getStudentsByClass(String classId) async {
     try {
+      // use whereIn to handle both 'Student' and 'student' in a single query
       final studentsSnapshot = await _firestore
           .collection('users')
-          .where('role', isEqualTo: 'Student')
+          .where('role', whereIn: ['Student', 'student'])
           .where('classId', isEqualTo: classId)
           .get();
 
@@ -99,33 +110,7 @@ class MarksService {
 
       return students;
     } catch (e) {
-      // Fallback to lowercase 'student'
-      try {
-        final studentsSnapshot = await _firestore
-            .collection('users')
-            .where('role', isEqualTo: 'student')
-            .where('classId', isEqualTo: classId)
-            .get();
-
-        final students = studentsSnapshot.docs
-            .map((doc) => StudentModel.fromDocument(doc))
-            .toList();
-
-        students.sort((a, b) {
-          final rollA = a.rollNumber ?? '';
-          final rollB = b.rollNumber ?? '';
-          final numA = int.tryParse(rollA);
-          final numB = int.tryParse(rollB);
-          if (numA != null && numB != null) {
-            return numA.compareTo(numB);
-          }
-          return rollA.compareTo(rollB);
-        });
-
-        return students;
-      } catch (e2) {
-        throw Exception('Failed to fetch students: $e. Fallback also failed: $e2');
-      }
+      throw Exception('Failed to fetch students: $e');
     }
   }
 
@@ -222,6 +207,8 @@ class MarksService {
       // Get student info
       final students = await getStudentsByClass(classId);
       final studentMap = {for (var s in students) s.uid: s};
+      // Get schoolId from first student (all students in same class should have same schoolId)
+      final schoolId = students.isNotEmpty ? students.first.schoolId : '';
 
       final batch = _firestore.batch();
 
@@ -238,6 +225,7 @@ class MarksService {
 
         final marks = MarksModel(
           marksId: marksId,
+          schoolId: schoolId,
           examId: examId,
           examName: examName,
           studentId: studentId,
@@ -260,17 +248,18 @@ class MarksService {
 
       await batch.commit();
 
-      // Create notifications for students whose marks were entered
+      // Create notifications in parallel
       try {
         final notificationService = NotificationService();
-        for (var entry in studentMarks.entries) {
-          await notificationService.notifyMarksEntered(
-            studentId: entry.key,
+        final notificationFutures = studentMarks.keys.map((studentId) => 
+          notificationService.notifyMarksEntered(
+            studentId: studentId,
             examName: examName,
             subjectName: subjectName,
             examId: examId,
-          );
-        }
+          )
+        );
+        await Future.wait(notificationFutures);
       } catch (e) {
         // Don't fail marks entry if notification fails
         debugPrint('Error creating notifications: $e');

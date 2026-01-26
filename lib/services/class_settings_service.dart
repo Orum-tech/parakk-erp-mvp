@@ -164,23 +164,14 @@ class ClassSettingsService {
     try {
       final studentsSnapshot = await _firestore
           .collection('users')
-          .where('role', isEqualTo: 'Student')
+          .where('role', whereIn: ['Student', 'student'])
           .where('classId', isEqualTo: classId)
+          .count()
           .get();
 
-      return studentsSnapshot.docs.length;
+      return studentsSnapshot.count ?? 0;
     } catch (e) {
-      // Fallback to lowercase
-      try {
-        final studentsSnapshot = await _firestore
-            .collection('users')
-            .where('role', isEqualTo: 'student')
-            .where('classId', isEqualTo: classId)
-            .get();
-        return studentsSnapshot.docs.length;
-      } catch (e2) {
-        return 0;
-      }
+      return 0;
     }
   }
 
@@ -196,12 +187,20 @@ class ClassSettingsService {
       if (subjectIds.isEmpty) return [];
 
       final subjects = <Map<String, dynamic>>[];
-      for (var subjectId in subjectIds) {
-        final subjectDoc = await _firestore.collection('subjects').doc(subjectId).get();
+      
+      // Fetch all subjects in parallel using Future.wait
+      final subjectFutures = subjectIds.map((subjectId) => 
+        _firestore.collection('subjects').doc(subjectId).get()
+      );
+      
+      final subjectDocs = await Future.wait(subjectFutures);
+      
+      for (var i = 0; i < subjectDocs.length; i++) {
+        final subjectDoc = subjectDocs[i];
         if (subjectDoc.exists) {
           final subjectData = subjectDoc.data()!;
           subjects.add({
-            'subjectId': subjectId,
+            'subjectId': subjectIds[i],
             'subjectName': subjectData['subjectName'] ?? 'Unknown',
             'teacherName': subjectData['teacherName'],
           });

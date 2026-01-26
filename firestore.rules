@@ -1,18 +1,469 @@
-rules_version='2'
-
+rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /{document=**} {
-      // This rule allows anyone with your database reference to view, edit,
-      // and delete all data in your database. It is useful for getting
-      // started, but it is configured to expire after 30 days because it
-      // leaves your app open to attackers. At that time, all client
-      // requests to your database will be denied.
-      //
-      // Make sure to write security rules for your app before that time, or
-      // else all client requests to your database will be denied until you
-      // update your rules.
-      allow read, write: if request.time < timestamp.date(2026, 1, 14);
+    
+    // Helper function to get user's schoolId
+    function getUserSchoolId() {
+      let userData = get(/databases/$(database)/documents/users/$(request.auth.uid));
+      return userData.data.schoolId;
+    }
+    
+    // Helper function to get user's role
+    function getUserRole() {
+      let userData = get(/databases/$(database)/documents/users/$(request.auth.uid));
+      return userData.data.role;
+    }
+    
+    // Helper function to check if user is active
+    function isUserActive() {
+      let userData = get(/databases/$(database)/documents/users/$(request.auth.uid));
+      return userData.data.isActive == true;
+    }
+    
+    // Helper function to check if school is active
+    function isSchoolActive(schoolId) {
+      let school = get(/databases/$(database)/documents/schools/$(schoolId));
+      return school.data.subscriptionStatus == 'active' || 
+             school.data.subscriptionStatus == 'trial';
+    }
+    
+    // Helper function to check if user is school admin
+    function isSchoolAdmin() {
+      return getUserRole() == 'SchoolAdmin' || getUserRole() == 'SuperAdmin';
+    }
+    
+    // Schools collection
+    match /schools/{schoolId} {
+      allow read: if request.auth != null && 
+                     isUserActive() &&
+                     (getUserSchoolId() == schoolId || isSchoolAdmin());
+      allow create: if request.auth != null && 
+                       isUserActive() &&
+                       (isSchoolAdmin() || getUserRole() == 'SuperAdmin');
+      allow update: if request.auth != null && 
+                       isUserActive() &&
+                       getUserSchoolId() == schoolId && 
+                       isSchoolAdmin();
+      allow delete: if request.auth != null && 
+                       isUserActive() &&
+                       getUserRole() == 'SuperAdmin';
+    }
+    
+    // Users collection - school isolation
+    match /users/{userId} {
+      allow read: if request.auth != null && 
+                     isUserActive() &&
+                     (request.auth.uid == userId || 
+                      getUserSchoolId() == resource.data.schoolId ||
+                      isSchoolAdmin());
+      allow create: if request.auth != null && 
+                       isUserActive() &&
+                       (request.resource.data.schoolId == getUserSchoolId() ||
+                        isSchoolAdmin() ||
+                        getUserRole() == 'SuperAdmin');
+      allow update: if request.auth != null && 
+                       isUserActive() &&
+                       (request.auth.uid == userId || 
+                        (getUserSchoolId() == resource.data.schoolId && 
+                         (isSchoolAdmin() || getUserRole() == 'Teacher')) ||
+                        getUserRole() == 'SuperAdmin');
+      allow delete: if request.auth != null && 
+                       isUserActive() &&
+                       (request.auth.uid == userId || 
+                        (getUserSchoolId() == resource.data.schoolId && 
+                         isSchoolAdmin()) ||
+                        getUserRole() == 'SuperAdmin');
+    }
+    
+    // Classes collection - school isolation
+    match /classes/{classId} {
+      allow read: if request.auth != null && 
+                     isUserActive() &&
+                     resource.data.schoolId == getUserSchoolId();
+      allow create: if request.auth != null && 
+                       isUserActive() &&
+                       request.resource.data.schoolId == getUserSchoolId() &&
+                       isSchoolActive(request.resource.data.schoolId) &&
+                       (isSchoolAdmin() || getUserRole() == 'Teacher');
+      allow update: if request.auth != null && 
+                       isUserActive() &&
+                       resource.data.schoolId == getUserSchoolId() &&
+                       isSchoolActive(resource.data.schoolId) &&
+                       (isSchoolAdmin() || getUserRole() == 'Teacher');
+      allow delete: if request.auth != null && 
+                       isUserActive() &&
+                       resource.data.schoolId == getUserSchoolId() &&
+                       isSchoolAdmin();
+    }
+    
+    // Subjects collection - school isolation
+    match /subjects/{subjectId} {
+      allow read: if request.auth != null && 
+                     isUserActive() &&
+                     resource.data.schoolId == getUserSchoolId();
+      allow create: if request.auth != null && 
+                       isUserActive() &&
+                       request.resource.data.schoolId == getUserSchoolId() &&
+                       isSchoolActive(request.resource.data.schoolId) &&
+                       (isSchoolAdmin() || getUserRole() == 'Teacher');
+      allow update: if request.auth != null && 
+                       isUserActive() &&
+                       resource.data.schoolId == getUserSchoolId() &&
+                       isSchoolActive(resource.data.schoolId) &&
+                       (isSchoolAdmin() || getUserRole() == 'Teacher');
+      allow delete: if request.auth != null && 
+                       isUserActive() &&
+                       resource.data.schoolId == getUserSchoolId() &&
+                       isSchoolAdmin();
+    }
+    
+    // Homework collection - school isolation
+    match /homework/{homeworkId} {
+      allow read: if request.auth != null && 
+                     isUserActive() &&
+                     resource.data.schoolId == getUserSchoolId();
+      allow create: if request.auth != null && 
+                       isUserActive() &&
+                       request.resource.data.schoolId == getUserSchoolId() &&
+                       isSchoolActive(request.resource.data.schoolId) &&
+                       getUserRole() == 'Teacher';
+      allow update: if request.auth != null && 
+                       isUserActive() &&
+                       resource.data.schoolId == getUserSchoolId() &&
+                       isSchoolActive(resource.data.schoolId) &&
+                       (resource.data.teacherId == request.auth.uid ||
+                        isSchoolAdmin());
+      allow delete: if request.auth != null && 
+                       isUserActive() &&
+                       resource.data.schoolId == getUserSchoolId() &&
+                       (resource.data.teacherId == request.auth.uid ||
+                        isSchoolAdmin());
+    }
+    
+    // Attendance collection - school isolation
+    match /attendance/{attendanceId} {
+      allow read: if request.auth != null && 
+                     isUserActive() &&
+                     resource.data.schoolId == getUserSchoolId();
+      allow create: if request.auth != null && 
+                       isUserActive() &&
+                       request.resource.data.schoolId == getUserSchoolId() &&
+                       isSchoolActive(request.resource.data.schoolId) &&
+                       (getUserRole() == 'Teacher' || isSchoolAdmin());
+      allow update: if request.auth != null && 
+                       isUserActive() &&
+                       resource.data.schoolId == getUserSchoolId() &&
+                       isSchoolActive(resource.data.schoolId) &&
+                       (getUserRole() == 'Teacher' || isSchoolAdmin());
+      allow delete: if request.auth != null && 
+                       isUserActive() &&
+                       resource.data.schoolId == getUserSchoolId() &&
+                       isSchoolAdmin();
+    }
+    
+    // Marks collection - school isolation
+    match /marks/{markId} {
+      allow read: if request.auth != null && 
+                     isUserActive() &&
+                     resource.data.schoolId == getUserSchoolId();
+      allow create: if request.auth != null && 
+                       isUserActive() &&
+                       request.resource.data.schoolId == getUserSchoolId() &&
+                       isSchoolActive(request.resource.data.schoolId) &&
+                       (getUserRole() == 'Teacher' || isSchoolAdmin());
+      allow update: if request.auth != null && 
+                       isUserActive() &&
+                       resource.data.schoolId == getUserSchoolId() &&
+                       isSchoolActive(request.resource.data.schoolId) &&
+                       (getUserRole() == 'Teacher' || isSchoolAdmin());
+      allow delete: if request.auth != null && 
+                       isUserActive() &&
+                       resource.data.schoolId == getUserSchoolId() &&
+                       isSchoolAdmin();
+    }
+    
+    // Exams collection - school isolation
+    match /exams/{examId} {
+      allow read: if request.auth != null && 
+                     isUserActive() &&
+                     resource.data.schoolId == getUserSchoolId();
+      allow create: if request.auth != null && 
+                       isUserActive() &&
+                       request.resource.data.schoolId == getUserSchoolId() &&
+                       isSchoolActive(request.resource.data.schoolId) &&
+                       (getUserRole() == 'Teacher' || isSchoolAdmin());
+      allow update: if request.auth != null && 
+                       isUserActive() &&
+                       resource.data.schoolId == getUserSchoolId() &&
+                       isSchoolActive(resource.data.schoolId) &&
+                       (getUserRole() == 'Teacher' || isSchoolAdmin());
+      allow delete: if request.auth != null && 
+                       isUserActive() &&
+                       resource.data.schoolId == getUserSchoolId() &&
+                       isSchoolAdmin();
+    }
+    
+    // Notices collection - school isolation
+    match /notices/{noticeId} {
+      allow read: if request.auth != null && 
+                     isUserActive() &&
+                     resource.data.schoolId == getUserSchoolId();
+      allow create: if request.auth != null && 
+                       isUserActive() &&
+                       request.resource.data.schoolId == getUserSchoolId() &&
+                       isSchoolActive(request.resource.data.schoolId) &&
+                       (getUserRole() == 'Teacher' || isSchoolAdmin());
+      allow update: if request.auth != null && 
+                       isUserActive() &&
+                       resource.data.schoolId == getUserSchoolId() &&
+                       isSchoolActive(resource.data.schoolId) &&
+                       (resource.data.createdBy == request.auth.uid ||
+                        isSchoolAdmin());
+      allow delete: if request.auth != null && 
+                       isUserActive() &&
+                       resource.data.schoolId == getUserSchoolId() &&
+                       (resource.data.createdBy == request.auth.uid ||
+                        isSchoolAdmin());
+    }
+    
+    // Events collection - school isolation
+    match /events/{eventId} {
+      allow read: if request.auth != null && 
+                     isUserActive() &&
+                     resource.data.schoolId == getUserSchoolId();
+      allow create: if request.auth != null && 
+                       isUserActive() &&
+                       request.resource.data.schoolId == getUserSchoolId() &&
+                       isSchoolActive(request.resource.data.schoolId) &&
+                       (getUserRole() == 'Teacher' || isSchoolAdmin());
+      allow update: if request.auth != null && 
+                       isUserActive() &&
+                       resource.data.schoolId == getUserSchoolId() &&
+                       isSchoolActive(resource.data.schoolId) &&
+                       (resource.data.organizerId == request.auth.uid ||
+                        isSchoolAdmin());
+      allow delete: if request.auth != null && 
+                       isUserActive() &&
+                       resource.data.schoolId == getUserSchoolId() &&
+                       (resource.data.organizerId == request.auth.uid ||
+                        isSchoolAdmin());
+    }
+    
+    // Fees collection - school isolation
+    match /fees/{feeId} {
+      allow read: if request.auth != null && 
+                     isUserActive() &&
+                     resource.data.schoolId == getUserSchoolId();
+      allow write: if request.auth != null && 
+                      isUserActive() &&
+                      request.resource.data.schoolId == getUserSchoolId() &&
+                      isSchoolActive(request.resource.data.schoolId) &&
+                      isSchoolAdmin();
+    }
+    
+    // Leave requests collection - school isolation
+    match /leave_requests/{requestId} {
+      allow read: if request.auth != null && 
+                     isUserActive() &&
+                     resource.data.schoolId == getUserSchoolId();
+      allow create: if request.auth != null && 
+                       isUserActive() &&
+                       request.resource.data.schoolId == getUserSchoolId() &&
+                       isSchoolActive(request.resource.data.schoolId);
+      allow update: if request.auth != null && 
+                       isUserActive() &&
+                       resource.data.schoolId == getUserSchoolId() &&
+                       isSchoolActive(resource.data.schoolId) &&
+                       (resource.data.requestedBy == request.auth.uid ||
+                        getUserRole() == 'Teacher' ||
+                        isSchoolAdmin());
+      allow delete: if request.auth != null && 
+                       isUserActive() &&
+                       resource.data.schoolId == getUserSchoolId() &&
+                       (resource.data.requestedBy == request.auth.uid ||
+                        isSchoolAdmin());
+    }
+    
+    // Incident logs collection - school isolation
+    match /incident_logs/{incidentId} {
+      allow read: if request.auth != null && 
+                     isUserActive() &&
+                     resource.data.schoolId == getUserSchoolId();
+      allow create: if request.auth != null && 
+                       isUserActive() &&
+                       request.resource.data.schoolId == getUserSchoolId() &&
+                       isSchoolActive(request.resource.data.schoolId) &&
+                       (getUserRole() == 'Teacher' || isSchoolAdmin());
+      allow update: if request.auth != null && 
+                       isUserActive() &&
+                       resource.data.schoolId == getUserSchoolId() &&
+                       isSchoolActive(resource.data.schoolId) &&
+                       (getUserRole() == 'Teacher' || isSchoolAdmin());
+      allow delete: if request.auth != null && 
+                       isUserActive() &&
+                       resource.data.schoolId == getUserSchoolId() &&
+                       isSchoolAdmin();
+    }
+    
+    // Behaviour logs collection - school isolation
+    match /behaviour_logs/{logId} {
+      allow read: if request.auth != null && 
+                     isUserActive() &&
+                     resource.data.schoolId == getUserSchoolId();
+      allow create: if request.auth != null && 
+                       isUserActive() &&
+                       request.resource.data.schoolId == getUserSchoolId() &&
+                       isSchoolActive(request.resource.data.schoolId) &&
+                       (getUserRole() == 'Teacher' || isSchoolAdmin());
+      allow update: if request.auth != null && 
+                       isUserActive() &&
+                       resource.data.schoolId == getUserSchoolId() &&
+                       isSchoolActive(resource.data.schoolId) &&
+                       (getUserRole() == 'Teacher' || isSchoolAdmin());
+      allow delete: if request.auth != null && 
+                       isUserActive() &&
+                       resource.data.schoolId == getUserSchoolId() &&
+                       isSchoolAdmin();
+    }
+    
+    // Video lessons collection - school isolation
+    match /video_lessons/{lessonId} {
+      allow read: if request.auth != null && 
+                     isUserActive() &&
+                     resource.data.schoolId == getUserSchoolId();
+      allow create: if request.auth != null && 
+                       isUserActive() &&
+                       request.resource.data.schoolId == getUserSchoolId() &&
+                       isSchoolActive(request.resource.data.schoolId) &&
+                       getUserRole() == 'Teacher';
+      allow update: if request.auth != null && 
+                       isUserActive() &&
+                       resource.data.schoolId == getUserSchoolId() &&
+                       isSchoolActive(resource.data.schoolId) &&
+                       (resource.data.teacherId == request.auth.uid ||
+                        isSchoolAdmin());
+      allow delete: if request.auth != null && 
+                       isUserActive() &&
+                       resource.data.schoolId == getUserSchoolId() &&
+                       (resource.data.teacherId == request.auth.uid ||
+                        isSchoolAdmin());
+    }
+    
+    // Tests collection - school isolation
+    match /tests/{testId} {
+      allow read: if request.auth != null && 
+                     isUserActive() &&
+                     resource.data.schoolId == getUserSchoolId();
+      allow create: if request.auth != null && 
+                       isUserActive() &&
+                       request.resource.data.schoolId == getUserSchoolId() &&
+                       isSchoolActive(request.resource.data.schoolId) &&
+                       getUserRole() == 'Teacher';
+      allow update: if request.auth != null && 
+                       isUserActive() &&
+                       resource.data.schoolId == getUserSchoolId() &&
+                       isSchoolActive(resource.data.schoolId) &&
+                       (resource.data.teacherId == request.auth.uid ||
+                        isSchoolAdmin());
+      allow delete: if request.auth != null && 
+                       isUserActive() &&
+                       resource.data.schoolId == getUserSchoolId() &&
+                       (resource.data.teacherId == request.auth.uid ||
+                        isSchoolAdmin());
+    }
+    
+    // Notes collection - school isolation
+    match /notes/{noteId} {
+      allow read: if request.auth != null && 
+                     isUserActive() &&
+                     resource.data.schoolId == getUserSchoolId();
+      allow create: if request.auth != null && 
+                       isUserActive() &&
+                       request.resource.data.schoolId == getUserSchoolId() &&
+                       isSchoolActive(request.resource.data.schoolId) &&
+                       getUserRole() == 'Teacher';
+      allow update: if request.auth != null && 
+                       isUserActive() &&
+                       resource.data.schoolId == getUserSchoolId() &&
+                       isSchoolActive(resource.data.schoolId) &&
+                       (resource.data.teacherId == request.auth.uid ||
+                        isSchoolAdmin());
+      allow delete: if request.auth != null && 
+                       isUserActive() &&
+                       resource.data.schoolId == getUserSchoolId() &&
+                       (resource.data.teacherId == request.auth.uid ||
+                        isSchoolAdmin());
+    }
+    
+    // Timetable collection - school isolation
+    match /timetable/{timetableId} {
+      allow read: if request.auth != null && 
+                     isUserActive() &&
+                     resource.data.schoolId == getUserSchoolId();
+      allow write: if request.auth != null && 
+                      isUserActive() &&
+                      request.resource.data.schoolId == getUserSchoolId() &&
+                      isSchoolActive(request.resource.data.schoolId) &&
+                      (getUserRole() == 'Teacher' || isSchoolAdmin());
+    }
+    
+    // School invitations collection
+    match /school_invitations/{invitationId} {
+      allow read: if request.auth != null && 
+                     isUserActive() &&
+                     (resource.data.email == request.auth.token.email ||
+                      resource.data.schoolId == getUserSchoolId());
+      allow create: if request.auth != null && 
+                       isUserActive() &&
+                       request.resource.data.schoolId == getUserSchoolId() &&
+                       (isSchoolAdmin() || getUserRole() == 'Teacher');
+      allow update: if request.auth != null && 
+                       isUserActive() &&
+                       resource.data.schoolId == getUserSchoolId() &&
+                       (resource.data.email == request.auth.token.email ||
+                        isSchoolAdmin() ||
+                        getUserRole() == 'Teacher');
+      allow delete: if request.auth != null && 
+                       isUserActive() &&
+                       resource.data.schoolId == getUserSchoolId() &&
+                       (isSchoolAdmin() || getUserRole() == 'Teacher');
+    }
+    
+    // Chat messages collection - school isolation
+    match /chat_messages/{messageId} {
+      allow read: if request.auth != null && 
+                     isUserActive() &&
+                     resource.data.schoolId == getUserSchoolId();
+      allow create: if request.auth != null && 
+                       isUserActive() &&
+                       request.resource.data.schoolId == getUserSchoolId() &&
+                       isSchoolActive(request.resource.data.schoolId);
+      allow update: if request.auth != null && 
+                       isUserActive() &&
+                       resource.data.schoolId == getUserSchoolId() &&
+                       resource.data.senderId == request.auth.uid;
+      allow delete: if request.auth != null && 
+                       isUserActive() &&
+                       resource.data.schoolId == getUserSchoolId() &&
+                       (resource.data.senderId == request.auth.uid ||
+                        isSchoolAdmin());
+    }
+    
+    // Notifications collection - school isolation
+    match /notifications/{notificationId} {
+      allow read: if request.auth != null && 
+                     isUserActive() &&
+                     resource.data.userId == request.auth.uid;
+      allow create: if request.auth != null && 
+                       isUserActive() &&
+                       request.resource.data.schoolId == getUserSchoolId() &&
+                       isSchoolActive(request.resource.data.schoolId);
+      allow update: if request.auth != null && 
+                       isUserActive() &&
+                       resource.data.userId == request.auth.uid;
+      allow delete: if request.auth != null && 
+                       isUserActive() &&
+                       resource.data.userId == request.auth.uid;
     }
   }
 }

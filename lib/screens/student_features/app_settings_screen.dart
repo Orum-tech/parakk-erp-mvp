@@ -125,6 +125,37 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
 
   Future<void> _showLanguageSelector() async {
     final languages = _settingsService.getAvailableLanguages();
+    
+    // If only one language (Hindi), set it directly
+    if (languages.length == 1) {
+      final hindiCode = languages[0]['code'] ?? 'hi';
+      if (_selectedLanguage != hindiCode) {
+        setState(() => _selectedLanguage = hindiCode);
+        await _settingsService.setSelectedLanguage(hindiCode);
+        await _localizationService.setLanguage(hindiCode);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Language changed to ${languages[0]['name']}'),
+              duration: const Duration(seconds: 1),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Hindi is already selected'),
+              duration: Duration(seconds: 1),
+            ),
+          );
+        }
+      }
+      return;
+    }
+
+    // If multiple languages, show selector
     final currentLanguage = languages.firstWhere(
       (lang) => lang['code'] == _selectedLanguage,
       orElse: () => languages[0],
@@ -167,6 +198,7 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
           SnackBar(
             content: Text('Language changed to ${languages.firstWhere((l) => l['code'] == selected)['name']}'),
             duration: const Duration(seconds: 1),
+            backgroundColor: Colors.green,
           ),
         );
       }
@@ -233,7 +265,10 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
             Icons.language,
             _showLanguageSelector,
             subtitle: _settingsService.getAvailableLanguages()
-                .firstWhere((l) => l['code'] == _selectedLanguage)['name'] ?? 'English',
+                .firstWhere(
+                  (l) => l['code'] == _selectedLanguage,
+                  orElse: () => _settingsService.getAvailableLanguages().first,
+                )['name'] ?? 'हिंदी (Hindi)',
           ),
         ],
       ),

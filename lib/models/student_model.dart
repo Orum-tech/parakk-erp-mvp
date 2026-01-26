@@ -21,6 +21,7 @@ class StudentModel extends UserModel {
     required super.uid,
     required super.name,
     required super.email,
+    required super.schoolId,
     required super.createdAt,
     this.studentId,
     this.rollNumber,
@@ -36,6 +37,7 @@ class StudentModel extends UserModel {
     this.bloodGroup,
     this.emergencyContact,
     this.academicInfo,
+    super.isActive,
   }) : super(role: UserRole.student);
 
   factory StudentModel.fromDocument(DocumentSnapshot doc) {
@@ -44,6 +46,7 @@ class StudentModel extends UserModel {
       uid: data['uid'] ?? doc.id,
       name: data['name'] ?? '',
       email: data['email'] ?? '',
+      schoolId: data['schoolId'] ?? '', // Will be required after migration
       createdAt: data['createdAt'] ?? Timestamp.now(),
       studentId: data['studentId'] ?? doc.id,
       rollNumber: data['rollNumber'],
@@ -59,6 +62,7 @@ class StudentModel extends UserModel {
       bloodGroup: data['bloodGroup'],
       emergencyContact: data['emergencyContact'],
       academicInfo: data['academicInfo'],
+      isActive: data['isActive'] ?? true,
     );
   }
 
@@ -88,6 +92,8 @@ class StudentModel extends UserModel {
     String? uid,
     String? name,
     String? email,
+    String? schoolId,
+    bool? isActive,
     Timestamp? createdAt,
     String? studentId,
     String? rollNumber,
@@ -108,7 +114,9 @@ class StudentModel extends UserModel {
       uid: uid ?? this.uid,
       name: name ?? this.name,
       email: email ?? this.email,
+      schoolId: schoolId ?? this.schoolId,
       createdAt: createdAt ?? this.createdAt,
+      isActive: isActive ?? this.isActive,
       studentId: studentId ?? this.studentId,
       rollNumber: rollNumber ?? this.rollNumber,
       classId: classId ?? this.classId,

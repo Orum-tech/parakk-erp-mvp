@@ -35,43 +35,50 @@ class StudentService {
   // Get all teachers who teach the student's class (subject teachers + class teacher)
   Future<List<TeacherModel>> getTeachersForClass(String classId) async {
     try {
-      QuerySnapshot teachersSnapshot;
+      // 1. Get subject teachers (teachers who have this class in their classIds list)
+      final subjectTeachersFuture = _firestore
+          .collection('users')
+          // whereIn doesn't support array-contains properly in all combinations, 
+          // usually separate queries are safer or just target 'Teacher' if we are confident in data consistency
+          // But to be safe on role case: we'll do two queries or rely on one if we fixed creation.
+          // Since we fixed creation to be Enum based, it should be likely consistent, but let's be safe.
+          .where('role', whereIn: ['Teacher', 'teacher'])
+          .where('classIds', arrayContains: classId)
+          .get();
+
+      // 2. Get class teacher (explicitly assigned as class teacher for this class)
+      final classTeacherFuture = _firestore
+          .collection('users')
+          .where('role', whereIn: ['Teacher', 'teacher'])
+          .where('classTeacherClassId', isEqualTo: classId)
+          .get();
+
+      final results = await Future.wait([subjectTeachersFuture, classTeacherFuture]);
       
-      try {
-        teachersSnapshot = await _firestore
-            .collection('users')
-            .where('role', isEqualTo: 'Teacher')
-            .get();
-      } catch (e) {
-        // Fallback to lowercase 'teacher'
-        teachersSnapshot = await _firestore
-            .collection('users')
-            .where('role', isEqualTo: 'teacher')
-            .get();
+      final Map<String, TeacherModel> uniqueTeachers = {};
+
+      // Process Subject Teachers
+      for (var doc in results[0].docs) {
+        try {
+          final teacher = TeacherModel.fromDocument(doc);
+          uniqueTeachers[teacher.uid] = teacher;
+        } catch (e) {
+          // skip invalid docs
+        }
       }
 
-      final teachers = teachersSnapshot.docs
-          .map((doc) {
-            try {
-              final teacher = TeacherModel.fromDocument(doc);
-              
-              // Check if teacher teaches this class
-              final teachesThisClass = 
-                  (teacher.classIds != null && teacher.classIds!.contains(classId)) ||
-                  (teacher.classTeacherClassId == classId);
-              
-              if (teachesThisClass) {
-                return teacher;
-              }
-              return null;
-            } catch (e) {
-              return null;
-            }
-          })
-          .where((teacher) => teacher != null)
-          .cast<TeacherModel>()
-          .toList();
+      // Process Class Teacher
+      for (var doc in results[1].docs) {
+         try {
+          final teacher = TeacherModel.fromDocument(doc);
+          uniqueTeachers[teacher.uid] = teacher;
+        } catch (e) {
+          // skip invalid docs
+        }
+      }
 
+      final teachers = uniqueTeachers.values.toList();
+      
       // Sort by name
       teachers.sort((a, b) => a.name.compareTo(b.name));
 

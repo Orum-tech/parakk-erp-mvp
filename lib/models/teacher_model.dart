@@ -4,7 +4,6 @@ import 'user_model.dart';
 class TeacherModel extends UserModel {
   final String? teacherId;
   final String? employeeId;
-  final String? schoolName;
   final String? phoneNumber;
   final String? address;
   final List<String>? subjects;
@@ -20,10 +19,10 @@ class TeacherModel extends UserModel {
     required super.uid,
     required super.name,
     required super.email,
+    required super.schoolId,
     required super.createdAt,
     this.teacherId,
     this.employeeId,
-    this.schoolName,
     this.phoneNumber,
     this.address,
     this.subjects,
@@ -34,6 +33,7 @@ class TeacherModel extends UserModel {
     this.yearsOfExperience,
     this.joiningDate,
     this.specialization,
+    super.isActive,
   }) : super(role: UserRole.teacher);
 
   factory TeacherModel.fromDocument(DocumentSnapshot doc) {
@@ -42,10 +42,10 @@ class TeacherModel extends UserModel {
       uid: data['uid'] ?? doc.id,
       name: data['name'] ?? '',
       email: data['email'] ?? '',
+      schoolId: data['schoolId'] ?? '', // Will be required after migration
       createdAt: data['createdAt'] ?? Timestamp.now(),
       teacherId: data['teacherId'] ?? doc.id,
       employeeId: data['employeeId'],
-      schoolName: data['schoolName'],
       phoneNumber: data['phoneNumber'],
       address: data['address'],
       subjects: List<String>.from(data['subjects'] ?? []),
@@ -56,6 +56,7 @@ class TeacherModel extends UserModel {
       yearsOfExperience: data['yearsOfExperience'],
       joiningDate: (data['joiningDate'] as Timestamp?)?.toDate(),
       specialization: data['specialization'],
+      isActive: data['isActive'] ?? true,
     );
   }
 
@@ -65,7 +66,6 @@ class TeacherModel extends UserModel {
     map.addAll({
       'teacherId': teacherId ?? uid,
       'employeeId': employeeId,
-      'schoolName': schoolName,
       'phoneNumber': phoneNumber,
       'address': address,
       'subjects': subjects,
@@ -84,10 +84,11 @@ class TeacherModel extends UserModel {
     String? uid,
     String? name,
     String? email,
+    String? schoolId,
+    bool? isActive,
     Timestamp? createdAt,
     String? teacherId,
     String? employeeId,
-    String? schoolName,
     String? phoneNumber,
     String? address,
     List<String>? subjects,
@@ -103,10 +104,11 @@ class TeacherModel extends UserModel {
       uid: uid ?? this.uid,
       name: name ?? this.name,
       email: email ?? this.email,
+      schoolId: schoolId ?? this.schoolId,
       createdAt: createdAt ?? this.createdAt,
+      isActive: isActive ?? this.isActive,
       teacherId: teacherId ?? this.teacherId,
       employeeId: employeeId ?? this.employeeId,
-      schoolName: schoolName ?? this.schoolName,
       phoneNumber: phoneNumber ?? this.phoneNumber,
       address: address ?? this.address,
       subjects: subjects ?? this.subjects,

@@ -5,6 +5,7 @@ class SubjectModel {
   final String subjectName;
   final String? subjectCode;
   final String? description;
+  final String schoolId; // REQUIRED - links subject to school
   final String? teacherId;
   final String? teacherName;
   final List<String>? classIds;
@@ -15,6 +16,7 @@ class SubjectModel {
   SubjectModel({
     required this.subjectId,
     required this.subjectName,
+    required this.schoolId,
     this.subjectCode,
     this.description,
     this.teacherId,
@@ -30,6 +32,7 @@ class SubjectModel {
     return SubjectModel(
       subjectId: doc.id,
       subjectName: data['subjectName'] ?? '',
+      schoolId: data['schoolId'] ?? '', // Will be required after migration
       subjectCode: data['subjectCode'],
       description: data['description'],
       teacherId: data['teacherId'],
@@ -45,6 +48,7 @@ class SubjectModel {
     return {
       'subjectId': subjectId,
       'subjectName': subjectName,
+      'schoolId': schoolId,
       'subjectCode': subjectCode,
       'description': description,
       'teacherId': teacherId,
@@ -59,6 +63,7 @@ class SubjectModel {
   SubjectModel copyWith({
     String? subjectId,
     String? subjectName,
+    String? schoolId,
     String? subjectCode,
     String? description,
     String? teacherId,
@@ -71,6 +76,7 @@ class SubjectModel {
     return SubjectModel(
       subjectId: subjectId ?? this.subjectId,
       subjectName: subjectName ?? this.subjectName,
+      schoolId: schoolId ?? this.schoolId,
       subjectCode: subjectCode ?? this.subjectCode,
       description: description ?? this.description,
       teacherId: teacherId ?? this.teacherId,

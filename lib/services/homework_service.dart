@@ -38,10 +38,12 @@ class HomeworkService {
 
       final teacherData = teacherDoc.data()!;
       final fullClassName = '$className-$section';
+      final schoolId = teacherData['schoolId'] ?? '';
 
       final homework = HomeworkModel(
         homeworkId: '', // Will be set by Firestore
         title: title,
+        schoolId: schoolId,
         description: description,
         classId: classId,
         className: fullClassName,

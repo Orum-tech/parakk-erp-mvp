@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
+import '../services/school_service.dart';
+import '../services/school_invitation_service.dart';
 import '../models/user_model.dart';
 import 'login_screen.dart';
 import 'auth_wrapper.dart';
@@ -19,10 +21,15 @@ class _SignupScreenState extends State<SignupScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
+  final _schoolCodeController = TextEditingController();
+  final _invitationCodeController = TextEditingController();
   
   bool _isLoading = false;
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
+  bool _useInvitation = false;
+  final _schoolService = SchoolService();
+  final _invitationService = SchoolInvitationService();
 
   final Color primaryBlue = const Color(0xFF1565C0);
   final Color gradientLight = const Color(0xFF64B5F6);
@@ -33,6 +40,8 @@ class _SignupScreenState extends State<SignupScreen> {
     _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
+    _schoolCodeController.dispose();
+    _invitationCodeController.dispose();
     super.dispose();
   }
 
@@ -45,12 +54,50 @@ class _SignupScreenState extends State<SignupScreen> {
       // Get role enum
       UserRole role = _getRoleEnum(widget.userRole);
 
+      String? schoolCode;
+      String? invitationId;
+
+      // Validate school code or invitation
+      if (_useInvitation) {
+        if (_invitationCodeController.text.trim().isEmpty) {
+          throw Exception('Please enter invitation code');
+        }
+        // Get invitation by ID (assuming invitation code is the ID)
+        final invitation = await _invitationService.getInvitationById(
+          _invitationCodeController.text.trim(),
+        );
+        if (invitation == null || !invitation.canAccept) {
+          throw Exception('Invalid or expired invitation code');
+        }
+        if (invitation.email.toLowerCase() != _emailController.text.trim().toLowerCase()) {
+          throw Exception('Invitation email does not match your email');
+        }
+        invitationId = invitation.invitationId;
+      } else {
+        if (_schoolCodeController.text.trim().isEmpty) {
+          throw Exception('Please enter school code');
+        }
+        // Validate school code
+        final school = await _schoolService.getSchoolByCode(
+          _schoolCodeController.text.trim(),
+        );
+        if (school == null) {
+          throw Exception('Invalid school code');
+        }
+        if (!school.isSubscriptionActive) {
+          throw Exception('School subscription is not active');
+        }
+        schoolCode = _schoolCodeController.text.trim().toUpperCase();
+      }
+
       // Call signup service
       await AuthService().signUp(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
         name: _nameController.text.trim(),
         role: role,
+        schoolCode: schoolCode,
+        invitationId: invitationId,
       );
 
       // Show success message
@@ -224,6 +271,73 @@ class _SignupScreenState extends State<SignupScreen> {
                         return null;
                       },
                       onToggleVisibility: () => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword),
+                    ),
+                    const SizedBox(height: 20),
+                    
+                    // Toggle between school code and invitation
+                    Row(
+                      children: [
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () => setState(() => _useInvitation = false),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              decoration: BoxDecoration(
+                                color: !_useInvitation ? primaryBlue : Colors.grey[200],
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Center(
+                                child: Text(
+                                  'School Code',
+                                  style: TextStyle(
+                                    color: !_useInvitation ? Colors.white : Colors.grey[700],
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () => setState(() => _useInvitation = true),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              decoration: BoxDecoration(
+                                color: _useInvitation ? primaryBlue : Colors.grey[200],
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Center(
+                                child: Text(
+                                  'Invitation',
+                                  style: TextStyle(
+                                    color: _useInvitation ? Colors.white : Colors.grey[700],
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+                    
+                    // School Code or Invitation Code
+                    _buildAestheticTextField(
+                      controller: _useInvitation ? _invitationCodeController : _schoolCodeController,
+                      label: _useInvitation ? "Invitation Code" : "School Code",
+                      icon: _useInvitation ? Icons.mail_outline : Icons.school_outlined,
+                      primaryColor: primaryBlue,
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return _useInvitation
+                              ? 'Please enter invitation code'
+                              : 'Please enter school code';
+                        }
+                        return null;
+                      },
                     ),
 
                     const SizedBox(height: 40),

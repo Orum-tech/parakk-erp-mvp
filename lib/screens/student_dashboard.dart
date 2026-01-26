@@ -57,6 +57,7 @@ import 'student_features/app_settings_screen.dart';
 import 'student_features/help_center_screen.dart';
 import 'student_features/notifications_screen.dart';
 import '../services/notification_service.dart';
+import '../widgets/school_context_indicator.dart';
 
 class StudentDashboard extends StatefulWidget {
   const StudentDashboard({super.key});
@@ -332,10 +333,13 @@ class _StudentDashboardState extends State<StudentDashboard> {
               ),
             ),
             const SizedBox(width: 15),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SchoolNameHeader(),
+                  const SizedBox(height: 2),
+                  Text(
                   "Welcome back,",
                   style: TextStyle(
                     color: Colors.grey[600],
@@ -351,11 +355,16 @@ class _StudentDashboardState extends State<StudentDashboard> {
                     fontSize: 18
                   ),
                 ),
-              ],
+                ],
+              ),
             ),
           ],
         ),
         actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: SchoolContextIndicator(),
+          ),
           Container(
             margin: const EdgeInsets.only(right: 20),
             decoration: BoxDecoration(
