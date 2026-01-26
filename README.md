@@ -99,14 +99,7 @@ lib/
     flutter run
     ```
 
----
 
-## 📚 Documentation
-
-Detailed documentation is available for developers:
-
-*   **[DOCUMENTATION.md](./DOCUMENTATION.md)**: Full architectural overview, data schema, and workflow details.
-*   **[WORKFLOW.md](./WORKFLOW.md)**: Visual guides for user journeys (Auth, Attendance, Marks).
 
 ---
 
